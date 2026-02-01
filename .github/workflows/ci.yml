@@ -1,0 +1,27 @@
+name: ci
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+      - name: Install
+        run: bun install
+      - name: Typecheck
+        run: bun run check
+      - name: Tests
+        run: bun test
+      - name: Build
+        run: bun run build
+      - name: Package smoke
+        run: |
+          test -f dist/cli.js
+          node dist/cli.js scan . --no-install --no-test --format md > /dev/null

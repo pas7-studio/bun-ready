@@ -1,0 +1,79 @@
+name: release
+on:
+  push:
+    tags:
+      - "v*.*.*"
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Existing tag to release (e.g. v0.1.0)"
+        required: true
+        type: string
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    strategy:
+      matrix:
+        include:
+          - os: ubuntu-latest
+            target: bun-linux-x64
+            ext: ""
+          - os: macos-latest
+            target: bun-darwin-x64
+            ext: ""
+          - os: windows-latest
+            target: bun-windows-x64
+            ext: ".exe"
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install
+        run: bun install
+
+      - name: Test
+        run: bun test
+
+      - name: Build JS dist
+        run: bun run build
+
+      - name: Compile standalone
+        run: |
+          mkdir -p release
+          bun build --compile --target=${{ matrix.target }} ./src/cli.ts --outfile release/bun-ready-${{ matrix.target }}${{ matrix.ext }}
+          ls -la release
+        shell: bash
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: bun-ready-${{ matrix.target }}
+          path: release/*
+
+  publish:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      - name: List artifacts
+        run: |
+          ls -la artifacts
+          find artifacts -type f -maxdepth 3 -print
+        shell: bash
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.event.inputs.tag || github.ref_name }}
+          files: |
+            artifacts/**/*

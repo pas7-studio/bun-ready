@@ -1,0 +1,11 @@
+{
+  "name": "fixture-yellow-native",
+  "version": "1.0.0",
+  "scripts": {
+    "test": "bun test",
+    "postinstall": "node -e \"console.log('postinstall')\""
+  },
+  "dependencies": {
+    "sharp": "^0.33.0"
+  }
+}

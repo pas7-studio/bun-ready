@@ -1,0 +1,17 @@
+Project: bun-ready
+Type: CLI tool (TypeScript) to estimate Bun migration risk.
+
+Core commands:
+- bun-ready scan <path> [--format md|json] [--out <file>] [--no-install] [--no-test]
+
+Key behaviors:
+- Reads package.json/lockfiles/scripts
+- Optional bun install --dry-run in a temp directory
+- Optional bun test when Bun-compatible
+- Produces deterministic report (Markdown/JSON)
+- Exit codes: 0 green, 2 yellow, 3 red
+
+Constraints:
+- No modifying user repos
+- Tests must not hit network
+- Keep dependencies minimal (prefer none)

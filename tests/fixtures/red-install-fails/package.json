@@ -1,0 +1,7 @@
+{
+  "name": "fixture-red-install-fails",
+  "version": "1.0.0",
+  "dependencies": {
+    "@this/does-not-exist-hopefully-987654321": "1.0.0"
+  }
+}

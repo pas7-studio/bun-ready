@@ -1,0 +1,32 @@
+{
+  "severity": "green",
+  "summaryLines": [
+    "Lockfiles: bun",
+    "Lifecycle scripts: none",
+    "Native addon risk: no",
+    "bun install dry-run: skipped",
+    "bun test: skipped"
+  ],
+  "findings": [],
+  "install": null,
+  "test": null,
+  "repo": {
+    "packageJsonPath": "C:\\Users\\nazarpes7\\Desktop\\bun-ready\\tests\\fixtures\\green\\package.json",
+    "lockfiles": {
+      "bunLock": true,
+      "bunLockb": false,
+      "npmLock": false,
+      "yarnLock": false,
+      "pnpmLock": false
+    },
+    "scripts": {
+      "test": "bun test"
+    },
+    "dependencies": {
+      "left-pad": "^1.3.0"
+    },
+    "devDependencies": {},
+    "optionalDependencies": {},
+    "hasWorkspaces": false
+  }
+}

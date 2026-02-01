@@ -1,0 +1,19 @@
+name: Feature request
+description: Suggest an improvement
+title: "[feat] "
+labels: ["enhancement"]
+body:
+  - type: textarea
+    id: idea
+    attributes:
+      label: What do you want?
+      description: Describe the feature and why it matters.
+    validations:
+      required: true
+  - type: textarea
+    id: details
+    attributes:
+      label: Proposed behavior
+      description: CLI flags, report changes, heuristics, etc.
+    validations:
+      required: false
