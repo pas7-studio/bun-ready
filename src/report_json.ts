@@ -1,5 +1,5 @@
-import type { AnalysisResult } from "./types.js";
+import type { OverallResult } from "./types.js";
 
-export const renderJson = (r: AnalysisResult): string => {
+export function renderJson(r: OverallResult): string {
   return JSON.stringify(r, null, 2);
-};
+}

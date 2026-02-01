@@ -1,10 +1,48 @@
-dist
+# Build outputs
+dist/
+
+# Dependencies
 node_modules
+
+# macOS
 .DS_Store
+
+# Environment files
 .env
 .env.*
+
+# Bun lockfiles
 bun.lock
 bun.lockb
+
+# Test coverage
 coverage
+
+# Logs
 *.log
+
+# Temporary files
 .tmp
+*.tgz
+
+# Config
+bun-ready.config.json
+
+# Temporary files from tests
+tests/fixtures/*/out.md
+tests/fixtures/*/out.json
+tests/fixtures/*/out-*.md
+tests/fixtures/*/out-*.json
+
+# Output files in temp directories
+/tmp/*.md
+/tmp/*.json
+
+# Report files in root (user may want to commit their own reports)
+# Uncomment if you want to ignore them:
+# bun-ready.md
+# bun-ready.json
+# bun-ready-test.json
+# test-built.md
+# test-missing.md
+# test-yellow.md

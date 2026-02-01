@@ -30,3 +30,39 @@ This repository is designed to be edited by humans and AI agents safely.
 - TypeScript strict
 - Avoid `any`
 - Keep code readable; prefer clear types over cleverness
+
+## New Rules for v0.2
+
+### Finding IDs
+
+All finding IDs must be documented and stable across versions:
+
+| ID | Description | Severity |
+|----|-------------|-----------|
+| `scripts.lifecycle` | Lifecycle scripts in root project | yellow |
+| `scripts.npm_specific` | npm/yarn/pnpm-specific commands | yellow |
+| `scripts.pm_assumptions` | Package manager assumptions | yellow |
+| `deps.native_addons` | Native addon dependencies | yellow/red |
+| `runtime.node_version` | Node version < 18 | yellow |
+| `runtime.dev_tools` | Dev tools (jest, vitest, etc.) | yellow |
+| `runtime.build_tools` | Build tools (webpack, babel, etc.) | yellow |
+| `runtime.ts_execution` | TS runtime execution (ts-node, tsx) | yellow |
+| `lockfile.missing` | No lockfile found | yellow |
+| `lockfile.migration` | Non-Bun lockfile | yellow |
+| `install.blocked_scripts` | Scripts blocked by Bun | red |
+| `install.trusted_deps` | Trusted dependencies mentioned | yellow |
+| `repo.no_package_json` | Missing package.json | red |
+
+When adding new finding IDs:
+1. Document in AGENTS.md
+2. Add to the table above
+3. Ensure stable behavior across versions
+4. Provide actionable hints
+
+### Monorepo Handling
+
+- Always test with both single packages and monorepos
+- Verify workspace discovery works for all patterns (*, **)
+- Test --scope flags (root, packages, all)
+- Ensure deterministic ordering of packages in reports
+- Never modify user repositories (only read)

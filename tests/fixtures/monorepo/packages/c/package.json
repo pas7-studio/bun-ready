@@ -1,0 +1,14 @@
+{
+  "name": "fixture-monorepo-pkg-c",
+  "version": "1.0.0",
+  "scripts": {
+    "test": "jest"
+  },
+  "dependencies": {
+    "sharp": "^0.33.0",
+    "node-sass": "^7.0.3"
+  },
+  "devDependencies": {
+    "jest": "^29.7.0"
+  }
+}

@@ -1,0 +1,14 @@
+{
+  "name": "fixture-monorepo-pkg-b",
+  "version": "1.0.0",
+  "scripts": {
+    "test": "bun test",
+    "postinstall": "node -e \"console.log('postinstall in pkg-b')\""
+  },
+  "dependencies": {
+    "lodash": "^4.17.21"
+  },
+  "engines": {
+    "node": ">=14"
+  }
+}
