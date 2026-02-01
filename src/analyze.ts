@@ -65,7 +65,23 @@ async function runBunInstallDryRun(packagePath: string): Promise<{
   summary: string;
   logs: string[];
   installAnalysis: ReturnType<typeof parseInstallLogs>;
+  skipReason?: string;
 }> {
+  // Check if Bun is available first
+  const { checkBunAvailable } = await import("./bun_check.js");
+  const bunCheck = await checkBunAvailable();
+  
+  if (!bunCheck.available) {
+    const skipReason = bunCheck.error!;
+    return {
+      ok: false,
+      summary: `Skipped: ${skipReason}`,
+      logs: [],
+      installAnalysis: { blockedDeps: [], trustedDepsMentioned: [], notes: [] },
+      skipReason
+    };
+  }
+
   const base = await fs.mkdtemp(path.join(os.tmpdir(), "bun-ready-"));
   const cleanup = async (): Promise<void> => {
     try {
@@ -108,7 +124,21 @@ function shouldRunBunTest(scripts: Record<string, string>): boolean {
 /**
  * Run bun test
  */
-async function runBunTest(packagePath: string): Promise<{ ok: boolean; summary: string; logs: string[] }> {
+async function runBunTest(packagePath: string): Promise<{ ok: boolean; summary: string; logs: string[]; skipReason?: string }> {
+  // Check if Bun is available first
+  const { checkBunAvailable } = await import("./bun_check.js");
+  const bunCheck = await checkBunAvailable();
+  
+  if (!bunCheck.available) {
+    const skipReason = bunCheck.error!;
+    return {
+      ok: false,
+      summary: `Skipped: ${skipReason}`,
+      logs: [],
+      skipReason
+    };
+  }
+
   const res = await exec("bun", ["test"], packagePath);
   const combined = [...(res.stdout ? res.stdout.split("\n") : []), ...(res.stderr ? res.stderr.split("\n") : [])].filter((l) => l.trim().length > 0);
   const logs = truncateLines(combined, 120);
@@ -161,7 +191,8 @@ export async function analyzeSinglePackage(
     install = {
       ok: installResult.ok,
       summary: installResult.summary,
-      logs: installResult.logs
+      logs: installResult.logs,
+      ...(installResult.skipReason !== undefined ? { skipReason: installResult.skipReason } : {})
     };
     installOk = installResult.ok;
 
@@ -202,7 +233,8 @@ export async function analyzeSinglePackage(
     test = {
       ok: testResult.ok,
       summary: testResult.summary,
-      logs: testResult.logs
+      logs: testResult.logs,
+      ...(testResult.skipReason !== undefined ? { skipReason: testResult.skipReason } : {})
     };
     testOk = testResult.ok;
   }

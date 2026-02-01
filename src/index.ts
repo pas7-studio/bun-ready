@@ -5,3 +5,4 @@ export { renderJson } from "./report_json.js";
 export { discoverWorkspaces, hasWorkspaces } from "./workspaces.js";
 export { readConfig, mergeConfigWithOpts } from "./config.js";
 export { parseInstallLogs, hasInstallIssues, getInstallSeverity } from "./bun_logs.js";
+export { checkBunAvailable } from "./bun_check.js";

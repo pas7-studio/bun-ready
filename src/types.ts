@@ -5,12 +5,12 @@ export type Severity = "green" | "yellow" | "red";
 export type ReportFormat = "md" | "json";
 
 export type InstallResult =
-  | { ok: true; summary: string; logs: string[] }
-  | { ok: false; summary: string; logs: string[] };
+  | { ok: true; summary: string; logs: string[]; skipReason?: string }
+  | { ok: false; summary: string; logs: string[]; skipReason?: string };
 
 export type TestResult =
-  | { ok: true; summary: string; logs: string[] }
-  | { ok: false; summary: string; logs: string[] };
+  | { ok: true; summary: string; logs: string[]; skipReason?: string }
+  | { ok: false; summary: string; logs: string[]; skipReason?: string };
 
 // Нові типи для конфіг файлу
 export type FailOnPolicy = "green" | "yellow" | "red";

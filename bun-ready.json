@@ -1,0 +1,95 @@
+{
+  "version": "0.2",
+  "severity": "yellow",
+  "summaryLines": [
+    "Total packages analyzed: 1",
+    "Workspaces detected: no",
+    "Root package severity: yellow",
+    "Overall severity: yellow"
+  ],
+  "findings": [
+    {
+      "id": "lockfile.missing",
+      "title": "No lockfile found",
+      "severity": "yellow",
+      "details": [
+        "No bun.lock/bun.lockb, package-lock.json, yarn.lock, or pnpm-lock.yaml detected."
+      ],
+      "hints": [
+        "Lockfiles improve reproducibility. Consider committing one before migration.",
+        "If you migrate to Bun, generate bun.lock and verify installs are stable."
+      ]
+    }
+  ],
+  "install": null,
+  "test": null,
+  "repo": {
+    "packageJsonPath": "C:\\Users\\nazarpes7\\Desktop\\bun-ready\\tests\\fixtures\\green\\package.json",
+    "hasWorkspaces": false,
+    "rootPackage": {
+      "name": "fixture-green",
+      "version": "1.0.0"
+    },
+    "lockfiles": {
+      "bunLock": false,
+      "bunLockb": false,
+      "npmLock": false,
+      "yarnLock": false,
+      "pnpmLock": false
+    },
+    "scripts": {
+      "test": "bun test"
+    },
+    "dependencies": {
+      "left-pad": "^1.3.0"
+    },
+    "devDependencies": {},
+    "optionalDependencies": {}
+  },
+  "packages": [
+    {
+      "name": "fixture-green",
+      "path": "C:\\Users\\nazarpes7\\Desktop\\bun-ready\\tests\\fixtures\\green",
+      "severity": "yellow",
+      "summaryLines": [
+        "Lockfiles: non-bun or missing",
+        "Lifecycle scripts: none",
+        "Native addon risk: no",
+        "bun install dry-run: skipped",
+        "bun test: skipped"
+      ],
+      "findings": [
+        {
+          "id": "lockfile.missing",
+          "title": "No lockfile found",
+          "severity": "yellow",
+          "details": [
+            "No bun.lock/bun.lockb, package-lock.json, yarn.lock, or pnpm-lock.yaml detected."
+          ],
+          "hints": [
+            "Lockfiles improve reproducibility. Consider committing one before migration.",
+            "If you migrate to Bun, generate bun.lock and verify installs are stable."
+          ]
+        }
+      ],
+      "install": null,
+      "test": null,
+      "scripts": {
+        "test": "bun test"
+      },
+      "dependencies": {
+        "left-pad": "^1.3.0"
+      },
+      "devDependencies": {},
+      "optionalDependencies": {},
+      "lockfiles": {
+        "bunLock": false,
+        "bunLockb": false,
+        "npmLock": false,
+        "yarnLock": false,
+        "pnpmLock": false
+      }
+    }
+  ],
+  "config": null
+}

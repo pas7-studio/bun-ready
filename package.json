@@ -1,6 +1,6 @@
 {
   "name": "bun-ready",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "CLI that estimates how painful migrating a Node.js repo to Bun might be. Generates a green/yellow/red Markdown report with reasons.",
   "author": "Pas7 Studio",
   "license": "Apache-2.0",

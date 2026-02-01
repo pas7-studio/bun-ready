@@ -171,6 +171,21 @@ const main = async (): Promise<void> => {
 
   const res = await analyzeRepoOverall(scanOpts);
 
+  // Check if any tests were skipped due to missing Bun
+  if (res.install?.skipReason || res.test?.skipReason) {
+    const skipWarnings: string[] = [];
+    if (res.install?.skipReason) {
+      skipWarnings.push(`Install check skipped: ${res.install.skipReason}`);
+    }
+    if (res.test?.skipReason) {
+      skipWarnings.push(`Test run skipped: ${res.test.skipReason}`);
+    }
+    
+    if (skipWarnings.length > 0) {
+      process.stderr.write(`WARNING:\n${skipWarnings.map((w) => `  - ${w}`).join("\n")}\n`);
+    }
+  }
+
   const out = opts.format === "json" ? renderJson(res) : renderMarkdown(res);
   const target = opts.outFile ?? (opts.format === "json" ? "bun-ready.json" : "bun-ready.md");
 
