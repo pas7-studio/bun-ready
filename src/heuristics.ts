@@ -427,7 +427,20 @@ export const detectNativeAddonRiskV2 = (repo: RepoInfo, config?: BunReadyConfig)
   const suspects = names.filter((n) => {
     // Skip if in allowlist
     if (allowlist.includes(n)) return false;
-    return NATIVE_SUSPECTS_V2.includes(n) || includesAny(n, ["napi", "node-gyp", "prebuild", "ffi", "bindings", "native", "native-module"]);
+    
+    // Check if in NATIVE_SUSPECTS_V2 list
+    const inList = NATIVE_SUSPECTS_V2.includes(n);
+    if (inList) return true;
+    
+    // Check for keyword matches - use more specific patterns to avoid false positives
+    const keywords = ["@napi-rs/", "napi-rs", "node-napi", "neon", "node-gyp", "prebuild", "ffi", "bindings", "native", "native-module"];
+    const keywordMatch = includesAny(n, keywords);
+    
+    if (keywordMatch) {
+      return true;
+    }
+    
+    return false;
   });
 
   // Check scripts for node-gyp rebuild

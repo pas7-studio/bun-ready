@@ -217,3 +217,101 @@ test("detectNativeAddonRiskV2: red for node-gyp rebuild in scripts", () => {
   expect(findings.length).toBe(1);
   expect(findings[0]?.severity).toBe("red");
 });
+
+// Test 7: openapi-typescript should NOT be detected as native addon
+test("detectNativeAddonRiskV2: openapi-typescript is NOT detected as native addon", () => {
+  const r = baseRepo();
+  r.dependencies = { "openapi-typescript": "^7.10.1" };
+  
+  const findings = detectNativeAddonRiskV2(r);
+  
+  expect(findings.length).toBe(0);
+});
+
+test("detectNativeAddonRiskV2: openapi-typescript in devDependencies is NOT detected as native addon", () => {
+  const r = baseRepo();
+  r.devDependencies = { "openapi-typescript": "^7.10.1" };
+  
+  const findings = detectNativeAddonRiskV2(r);
+  
+  expect(findings.length).toBe(0);
+});
+
+test("detectNativeAddonRiskV2: openapi-typescript with other clean packages has no findings", () => {
+  const r = baseRepo();
+  r.dependencies = { 
+    "openapi-typescript": "^7.10.1",
+    "typescript": "^5.0.0",
+    "zod": "^3.22.0"
+  };
+  
+  const findings = detectNativeAddonRiskV2(r);
+  
+  expect(findings.length).toBe(0);
+});
+
+// Test 8: Real N-API packages should be detected correctly
+test("detectNativeAddonRiskV2: detects @napi-rs/* packages", () => {
+  const r = baseRepo();
+  r.dependencies = { 
+    "@napi-rs/canvas": "^1.0.0",
+    "@napi-rs/cli": "^2.0.0"
+  };
+  
+  const findings = detectNativeAddonRiskV2(r);
+  
+  expect(findings.length).toBeGreaterThan(0);
+  expect(findings[0]?.id).toBe("deps.native_addons");
+  expect(findings[0]?.details).toContain("@napi-rs/canvas@^1.0.0");
+  expect(findings[0]?.details).toContain("@napi-rs/cli@^2.0.0");
+});
+
+test("detectNativeAddonRiskV2: detects napi-rs package", () => {
+  const r = baseRepo();
+  r.dependencies = { "napi-rs": "^2.0.0" };
+  
+  const findings = detectNativeAddonRiskV2(r);
+  
+  expect(findings.length).toBeGreaterThan(0);
+  expect(findings[0]?.id).toBe("deps.native_addons");
+  expect(findings[0]?.details).toContain("napi-rs@^2.0.0");
+});
+
+test("detectNativeAddonRiskV2: detects node-napi package", () => {
+  const r = baseRepo();
+  r.dependencies = { "node-napi": "^1.0.0" };
+  
+  const findings = detectNativeAddonRiskV2(r);
+  
+  expect(findings.length).toBeGreaterThan(0);
+  expect(findings[0]?.id).toBe("deps.native_addons");
+  expect(findings[0]?.details).toContain("node-napi@^1.0.0");
+});
+
+test("detectNativeAddonRiskV2: detects neon package", () => {
+  const r = baseRepo();
+  r.dependencies = { "neon": "^1.0.0" };
+  
+  const findings = detectNativeAddonRiskV2(r);
+  
+  expect(findings.length).toBeGreaterThan(0);
+  expect(findings[0]?.id).toBe("deps.native_addons");
+  expect(findings[0]?.details).toContain("neon@^1.0.0");
+});
+
+test("detectNativeAddonRiskV2: mixed packages - N-API detected, TS not", () => {
+  const r = baseRepo();
+  r.dependencies = { 
+    "openapi-typescript": "^7.10.1",
+    "@napi-rs/canvas": "^1.0.0",
+    "typescript": "^5.0.0"
+  };
+  
+  const findings = detectNativeAddonRiskV2(r);
+  
+  expect(findings.length).toBeGreaterThan(0);
+  expect(findings[0]?.id).toBe("deps.native_addons");
+  // Only @napi-rs/canvas should be in details, not openapi-typescript
+  expect(findings[0]?.details).toContain("@napi-rs/canvas@^1.0.0");
+  expect(findings[0]?.details.some((d: string) => d.includes("openapi-typescript"))).toBe(false);
+});

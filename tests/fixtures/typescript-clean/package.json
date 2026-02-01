@@ -1,0 +1,17 @@
+{
+  "name": "fixture-typescript-clean",
+  "version": "1.0.0",
+  "description": "Fixture with TypeScript packages that should NOT be detected as native addons",
+  "scripts": {
+    "test": "bun test",
+    "build": "tsc"
+  },
+  "dependencies": {
+    "openapi-typescript": "^7.10.1",
+    "typescript": "^5.0.0",
+    "zod": "^3.22.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0"
+  }
+}

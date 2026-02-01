@@ -125,10 +125,63 @@ test("v2: missing package.json returns red", async () => {
 });
 
 // Test 8: Green fixture still works
-test("v2: green fixture returns green", async () => {
+test("v2: green fixture returns yellow (no bun.lock)", async () => {
   const repoPath = path.join(process.cwd(), "tests", "fixtures", "green");
   
   const res = await exec("bun", [cli, "scan", repoPath, "--no-install", "--no-test"], process.cwd());
   
   expect(res.code).toBe(2); // YELLOW - green fixture doesn't have bun.lock in git
+});
+
+// Test 9: TypeScript clean fixture should NOT detect openapi-typescript as native addon
+test("v2: typescript-clean fixture should NOT detect openapi-typescript as native addon", async () => {
+  const repoPath = path.join(process.cwd(), "tests", "fixtures", "typescript-clean");
+  const out = path.join(repoPath, "out-typescript-clean.json");
+  
+  const res = await exec("bun", [cli, "scan", repoPath, "--no-install", "--no-test", "--format", "json", "--out", out], process.cwd());
+  
+  expect(res.code).toBeGreaterThanOrEqual(0);
+  expect(res.stdout.length > 0).toBe(true);
+  
+  // Read and parse JSON
+  const { readJsonFile } = await import("../../src/util.js");
+  const json = await readJsonFile(out);
+  
+  expect(json.version).toBe("0.2");
+  expect(Array.isArray(json.packages)).toBe(true);
+  expect(json.packages.length).toBeGreaterThan(0);
+  
+  // Get the first package
+  const pkg = json.packages[0];
+  expect(pkg).toBeDefined();
+  
+  // Check that deps.native_addons is NOT in findings
+  const hasNativeAddonFinding = pkg.findings?.some((f: any) => f.id === "deps.native_addons");
+  expect(hasNativeAddonFinding).toBe(false);
+  
+  // Verify openapi-typescript is in dependencies (dependencies is an object, not an array)
+  expect(pkg.dependencies).toBeDefined();
+  expect(typeof pkg.dependencies === "object").toBe(true);
+  expect(pkg.dependencies["openapi-typescript"]).toBe("^7.10.1");
+});
+
+test("v2: typescript-clean with MD format shows correct output", async () => {
+  const repoPath = path.join(process.cwd(), "tests", "fixtures", "typescript-clean");
+  const out = path.join(repoPath, "out-typescript-clean.md");
+  
+  const res = await exec("bun", [cli, "scan", repoPath, "--no-install", "--no-test", "--format", "md", "--out", out], process.cwd());
+  
+  expect(res.code).toBeGreaterThanOrEqual(0);
+  expect(res.stdout.length > 0).toBe(true);
+  
+  // Read the file
+  const { readFile } = await import("node:fs/promises");
+  const content = await readFile(out, "utf-8");
+  
+  // Should show "Native addon risk: no"
+  expect(content).toContain("Native addon risk: no");
+  
+  // Should NOT contain deps.native_addons finding
+  expect(content).not.toContain("Potential native addons");
+  expect(content).not.toContain("node-gyp toolchain risk");
 });
