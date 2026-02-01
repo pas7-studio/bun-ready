@@ -216,11 +216,15 @@ export function renderMarkdown(r: OverallResult): string {
   lines.push(``);
   
   // Findings Summary Table - calculate from root findings
+  // Get root package to check for clean dependencies
+  const rootPkgForSummary = r.packages?.find((p) => p.path === path.dirname(r.repo.packageJsonPath));
+  const cleanDepsCount = (rootPkgForSummary?.cleanDependencies?.length || 0) + (rootPkgForSummary?.cleanDevDependencies?.length || 0);
+
   const rootFindingsSummary: FindingsSummary = {
-    green: r.findings.filter((f) => f.severity === "green").length,
+    green: cleanDepsCount > 0 ? 1 : r.findings.filter((f) => f.severity === "green").length,
     yellow: r.findings.filter((f) => f.severity === "yellow").length,
     red: r.findings.filter((f) => f.severity === "red").length,
-    total: r.findings.length
+    total: r.findings.length + (cleanDepsCount > 0 ? 1 : 0)
   };
   lines.push(formatFindingsTable(rootFindingsSummary));
   lines.push(``);
@@ -331,7 +335,7 @@ export function renderMarkdown(r: OverallResult): string {
   const totalCleanDeps = cleanDeps.length + cleanDevDeps.length;
 
   if (totalCleanDeps > 0) {
-    lines.push(`### Clean Dependencies (✅ GREEN)`);
+    lines.push(`## Clean Dependencies (✅ GREEN)`);
     lines.push(`**No migration risks detected - ${totalCleanDeps} total packages**`);
     lines.push(``);
     lines.push(`- Dependencies: ${cleanDeps.length}`);
@@ -459,11 +463,15 @@ export const renderDetailedReport = (r: OverallResult): string => {
   lines.push(``);
   
   // Findings Summary Table
+  // Get root package to check for clean dependencies
+  const rootPkgForSummary = r.packages?.find((p) => p.path === path.dirname(r.repo.packageJsonPath));
+  const cleanDepsCount = (rootPkgForSummary?.cleanDependencies?.length || 0) + (rootPkgForSummary?.cleanDevDependencies?.length || 0);
+
   const rootFindingsSummary: FindingsSummary = {
-    green: r.findings.filter((f) => f.severity === "green").length,
+    green: cleanDepsCount > 0 ? 1 : r.findings.filter((f) => f.severity === "green").length,
     yellow: r.findings.filter((f) => f.severity === "yellow").length,
     red: r.findings.filter((f) => f.severity === "red").length,
-    total: r.findings.length
+    total: r.findings.length + (cleanDepsCount > 0 ? 1 : 0)
   };
   lines.push(formatFindingsTable(rootFindingsSummary));
   lines.push(``);

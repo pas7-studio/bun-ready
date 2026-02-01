@@ -5,10 +5,10 @@
 ## Findings Summary
 | Status | Count |
 |--------|-------|
-| 🟢 Green | 0 |
+| 🟢 Green | 1 |
 | 🟡 Yellow | 1 |
 | 🔴 Red | 0 |
-| **Total** | **1** |
+| **Total** | **2** |
 
 **Overall:** 🟡 YELLOW
 
@@ -34,7 +34,7 @@
 - Dependencies with findings: 0
 - DevDependencies with findings: 0
 
-### Clean Dependencies (✅ GREEN)
+## Clean Dependencies (✅ GREEN)
 **No migration risks detected - 1 total packages**
 
 - Dependencies: 1
