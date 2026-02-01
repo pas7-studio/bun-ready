@@ -1,3 +1,4 @@
+import path from "node:path";
 import type { OverallResult, Severity, PackageAnalysis, FindingsSummary, BaselineComparison, PolicySummary, RuleAction } from "./types.js";
 import { stableSort } from "./util.js";
 
@@ -289,7 +290,7 @@ export function renderMarkdown(r: OverallResult): string {
   }
 
   // Root install/test results
-  const rootPkg = r.packages?.find((p) => p.path === r.repo.packageJsonPath);
+  const rootPkg = r.packages?.find((p) => p.path === path.dirname(r.repo.packageJsonPath));
   if (rootPkg?.install) {
     lines.push(`## bun install (dry-run)`);
     lines.push(`- Result: ${rootPkg.install.ok ? "ok" : "failed"}`);
@@ -317,10 +318,24 @@ export function renderMarkdown(r: OverallResult): string {
   }
 
   // Root package summary
-  const rootPkgForStats = r.packages?.find((p) => p.path === r.repo.packageJsonPath);
+  const rootPkgForStats = r.packages?.find((p) => p.path === path.dirname(r.repo.packageJsonPath));
   if (rootPkgForStats && rootPkgForStats.stats) {
     lines.push(`## Package Summary`);
     for (const l of formatPackageStats(rootPkgForStats)) lines.push(l);
+    lines.push(``);
+  }
+
+  // Clean dependencies (only if there are any) - use rootPkg from line 292
+  const cleanDeps = (rootPkg?.cleanDependencies || []);
+  const cleanDevDeps = (rootPkg?.cleanDevDependencies || []);
+  const totalCleanDeps = cleanDeps.length + cleanDevDeps.length;
+
+  if (totalCleanDeps > 0) {
+    lines.push(`### Clean Dependencies (✅ GREEN)`);
+    lines.push(`**No migration risks detected - ${totalCleanDeps} total packages**`);
+    lines.push(``);
+    lines.push(`- Dependencies: ${cleanDeps.length}`);
+    lines.push(`- DevDependencies: ${cleanDevDeps.length}`);
     lines.push(``);
   }
 
@@ -519,7 +534,39 @@ export const renderDetailedReport = (r: OverallResult): string => {
     lines.push(`No package usage information available. Run with --detailed flag to enable usage analysis.`);
     lines.push(``);
   }
-  
+
+  // Clean dependencies (only if there are any)
+  const rootPkg = r.packages?.find((p) => p.path === path.dirname(r.repo.packageJsonPath));
+  const cleanDeps = rootPkg?.cleanDependencies || [];
+  const cleanDevDeps = rootPkg?.cleanDevDependencies || [];
+  const totalCleanDeps = cleanDeps.length + cleanDevDeps.length;
+
+  if (totalCleanDeps > 0) {
+    lines.push(`---`);
+    lines.push(``);
+    lines.push(`### Clean Dependencies (✅ GREEN)`);
+    lines.push(`**No migration risks detected - ${totalCleanDeps} total packages**`);
+    lines.push(``);
+
+    if (cleanDeps.length > 0) {
+      lines.push(`#### Dependencies (${cleanDeps.length} packages)`);
+      lines.push(``);
+      for (const dep of cleanDeps) {
+        lines.push(`- ${dep}`);
+      }
+      lines.push(``);
+    }
+
+    if (cleanDevDeps.length > 0) {
+      lines.push(`#### DevDependencies (${cleanDevDeps.length} packages)`);
+      lines.push(``);
+      for (const dep of cleanDevDeps) {
+        lines.push(`- ${dep}`);
+      }
+      lines.push(``);
+    }
+  }
+
   // Add regular findings below
   lines.push(`---`);
   lines.push(``);

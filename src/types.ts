@@ -51,6 +51,8 @@ export type PackageAnalysis = {
   stats?: PackageStats;
   findingsSummary?: FindingsSummary;
   packageUsage?: PackageUsageStats;
+  cleanDependencies?: string[];
+  cleanDevDependencies?: string[];
 };
 
 // Оновити ScanOptions з новими полями

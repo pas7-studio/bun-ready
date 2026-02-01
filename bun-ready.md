@@ -26,6 +26,20 @@
 - Name: fixture-green
 - Version: 1.0.0
 
+## Package Summary
+- Total dependencies: 1
+- Total devDependencies: 0
+- Clean dependencies: 1
+- Clean devDependencies: 0
+- Dependencies with findings: 0
+- DevDependencies with findings: 0
+
+### Clean Dependencies (✅ GREEN)
+**No migration risks detected - 1 total packages**
+
+- Dependencies: 1
+- DevDependencies: 0
+
 ## Root Findings
 ### No lockfile found (🟡 YELLOW)
 

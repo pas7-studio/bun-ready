@@ -246,6 +246,36 @@ export async function analyzeSinglePackage(
   // Calculate package statistics
   const stats = calculatePackageStats(info.pkg, findings);
 
+  // Collect clean dependencies with versions (preserving package.json order)
+  const riskyPackageNames = new Set<string>();
+  for (const finding of findings) {
+    for (const detail of finding.details) {
+      // Parse package names from detail strings like "sharp@^0.33.0"
+      const match = detail.match(/^([a-zA-Z0-9_@\/\.\-]+)/);
+      if (match && match[1]) {
+        const fullPkg = match[1];
+        const pkgName = fullPkg.split(/[@:]/)[0];
+        if (pkgName) {
+          riskyPackageNames.add(pkgName);
+        }
+      }
+    }
+  }
+
+  const cleanDependencies: string[] = [];
+  for (const [depName, version] of Object.entries(info.dependencies)) {
+    if (!riskyPackageNames.has(depName)) {
+      cleanDependencies.push(`${depName}@${version}`);
+    }
+  }
+
+  const cleanDevDependencies: string[] = [];
+  for (const [depName, version] of Object.entries(info.devDependencies)) {
+    if (!riskyPackageNames.has(depName)) {
+      cleanDevDependencies.push(`${depName}@${version}`);
+    }
+  }
+
   // Calculate findings summary
   const findingsSummary = calculateFindingsSummary(findings);
 
@@ -283,7 +313,9 @@ export async function analyzeSinglePackage(
     optionalDependencies: info.optionalDependencies,
     lockfiles: info.lockfiles,
     stats,
-    findingsSummary
+    findingsSummary,
+    cleanDependencies,
+    cleanDevDependencies
   };
 
   if (packageUsage !== undefined) {

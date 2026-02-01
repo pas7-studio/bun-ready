@@ -1,3 +1,4 @@
+# File: action.yml
 name: 'bun-ready Check'
 description: 'Check if your project is ready to migrate to Bun with policy enforcement, regression detection, and CI integration'
 
