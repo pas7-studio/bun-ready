@@ -46,3 +46,5 @@ tests/fixtures/*/out-*.json
 # test-built.md
 # test-missing.md
 # test-yellow.md
+
+plans/

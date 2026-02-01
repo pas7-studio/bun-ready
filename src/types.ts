@@ -2,7 +2,7 @@
 // Існуючі типи - зберегти без змін
 export type Severity = "green" | "yellow" | "red";
 
-export type ReportFormat = "md" | "json";
+export type ReportFormat = "md" | "json" | "sarif";
 
 export type InstallResult =
   | { ok: true; summary: string; logs: string[]; skipReason?: string }
@@ -21,6 +21,9 @@ export type BunReadyConfig = {
   nativeAddonAllowlist?: string[];
   failOn?: FailOnPolicy;
   detailed?: boolean;
+  // v0.3 extensions
+  rules?: PolicyRule[];
+  thresholds?: PolicyThresholds;
 };
 
 // Нові типи для workspaces
@@ -53,7 +56,7 @@ export type PackageAnalysis = {
 // Оновити ScanOptions з новими полями
 export type ScanOptions = {
   repoPath: string;
-  format: ReportFormat;
+  format?: ReportFormat;
   outFile: string | null;
   runInstall: boolean;
   runTest: boolean;
@@ -61,6 +64,8 @@ export type ScanOptions = {
   detailed: boolean;
   scope?: WorkspaceScope;
   failOn?: FailOnPolicy;
+  ci?: CIOptions;
+  outputDir?: string;
 };
 
 // Новий тип для результатів parsing bun install logs
@@ -110,7 +115,7 @@ export interface PackageUsageStats {
 
 // Новий тип для OverallResult (v0.2)
 export type OverallResult = {
-  version?: string; // "0.2"
+  version?: string; // "0.2" | "0.3"
   severity: Severity;
   summaryLines: string[];
   findings: Finding[];
@@ -150,6 +155,11 @@ export type OverallResult = {
   };
   packages?: PackageAnalysis[];
   config?: BunReadyConfig | null;
+  // v0.3 extensions
+  policyApplied?: PolicySummary;
+  baselineComparison?: BaselineComparison;
+  changedPackages?: string[];
+  ciSummary?: CISummary;
 };
 
 // Зберегти існуючий тип для сумісності (deprecated)
@@ -189,3 +199,172 @@ export type RepoInfo = {
 // Зберегти існуючий тип для сумісності (deprecated)
 // eslint-disable-next-line @typescript-eslint/no-empty-interface
 export type AnalysisResult = OverallResult; // alias for backwards compatibility
+
+// ============================================================================
+// v0.3 NEW TYPES
+// ============================================================================
+
+// Policy types
+export type RuleAction = "fail" | "warn" | "off" | "ignore";
+export type SeverityChange = "upgrade" | "downgrade" | "same";
+
+export type PolicyRule = {
+  id: string; // finding id або "*"
+  action?: RuleAction;
+  severityChange?: SeverityChange;
+  reason?: string;
+};
+
+export type PolicyThresholds = {
+  maxWarnings?: number;
+  maxPackagesRed?: number;
+  maxPackagesYellow?: number;
+};
+
+export type PolicyConfig = {
+  rules?: PolicyRule[];
+  thresholds?: PolicyThresholds;
+  failOn?: FailOnPolicy;
+};
+
+export type AppliedPolicyRule = {
+  findingId: string;
+  action: RuleAction;
+  originalSeverity?: Severity;
+  newSeverity?: Severity;
+  reason?: string;
+};
+
+export type PolicySummary = {
+  rulesApplied: number;
+  findingsModified: number;
+  findingsDisabled: number;
+  severityUpgraded: number;
+  severityDowngraded: number;
+  rules: AppliedPolicyRule[];
+};
+
+// Baseline types
+export type FindingFingerprint = {
+  id: string;
+  packageName?: string;
+  severity: Severity;
+  detailsHash: string;
+};
+
+export type BaselineMetrics = {
+  totalFindings: number;
+  greenCount: number;
+  yellowCount: number;
+  redCount: number;
+  packagesGreen: number;
+  packagesYellow: number;
+  packagesRed: number;
+};
+
+export type BaselineData = {
+  version: string; // "0.3"
+  scanVersion?: string; // bun-ready version
+  timestamp: string; // ISO timestamp
+  repoPath: string;
+  findings: FindingFingerprint[];
+  metrics: BaselineMetrics;
+};
+
+export type BaselineComparison = {
+  newFindings: FindingFingerprint[];
+  resolvedFindings: FindingFingerprint[];
+  severityChanges: {
+    fingerprint: FindingFingerprint;
+    oldSeverity: Severity;
+    newSeverity: Severity;
+  }[];
+  isRegression: boolean;
+  regressionReasons: string[];
+};
+
+// SARIF types
+export type SarifLevel = "note" | "warning" | "error";
+
+export type SarifRule = {
+  id: string;
+  shortDescription: { text: string };
+  fullDescription?: { text: string };
+  help?: { text: string };
+  defaultConfiguration: { level: SarifLevel };
+};
+
+export type SarifResult = {
+  ruleId: string;
+  level: SarifLevel;
+  message: { text: string };
+  locations: SarifLocation[];
+};
+
+export type SarifLocation = {
+  physicalLocation: {
+    artifactLocation: { uri: string };
+    region?: { startLine?: number; endLine?: number };
+  };
+};
+
+export type SarifRun = {
+  tool: {
+    driver: {
+      name: string;
+      version: string;
+      semanticVersion?: string;
+      rules: SarifRule[];
+    };
+  };
+  results: SarifResult[];
+};
+
+export type SarifLog = {
+  version: string;
+  $schema: string;
+  runs: SarifRun[];
+};
+
+// CI types
+export type CIOptions = {
+  mode: boolean;
+  outputDir?: string;
+  minVerbose?: boolean;
+};
+
+export type CISummary = {
+  verdict: Severity;
+  topFindings: string[];
+  nextActions: string[];
+  exitCode: number;
+};
+
+// Changed-only types
+export type ChangedOnlyOptions = {
+  enabled: boolean;
+  sinceRef?: string;
+  baseBranch?: string;
+};
+
+// Updated ScanOptions for v0.3
+export type ScanOptionsV03 = Omit<ScanOptions, "format"> & {
+  format?: ReportFormat;
+  ci?: CIOptions;
+  policy?: PolicyConfig;
+  baseline?: {
+    file: string;
+    update?: boolean;
+  };
+  changedOnly?: ChangedOnlyOptions;
+  outputDir?: string;
+};
+
+// Updated OverallResult for v0.3 (extends v0.2)
+export type OverallResultV03 = OverallResult & {
+  version: "0.3";
+  policyApplied?: PolicySummary;
+  baselineComparison?: BaselineComparison;
+  changedPackages?: string[];
+  ciSummary?: CISummary;
+};

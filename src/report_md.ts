@@ -1,4 +1,4 @@
-import type { OverallResult, Severity, PackageAnalysis, FindingsSummary } from "./types.js";
+import type { OverallResult, Severity, PackageAnalysis, FindingsSummary, BaselineComparison, PolicySummary, RuleAction } from "./types.js";
 import { stableSort } from "./util.js";
 
 const badge = (s: Severity): string => {
@@ -70,6 +70,132 @@ const formatPackageStats = (pkg: PackageAnalysis): string[] => {
   return lines;
 };
 
+const formatPolicyApplied = (policy: PolicySummary): string => {
+  const lines: string[] = [];
+  lines.push(`## Policy Applied`);
+  lines.push(``);
+  lines.push(`- **Rules applied**: ${policy.rulesApplied}`);
+  lines.push(`- **Findings modified**: ${policy.findingsModified}`);
+  lines.push(`- **Findings disabled**: ${policy.findingsDisabled}`);
+  lines.push(`- **Severity upgraded**: ${policy.severityUpgraded}`);
+  lines.push(`- **Severity downgraded**: ${policy.severityDowngraded}`);
+  lines.push(``);
+  
+  if (policy.rules.length > 0) {
+    lines.push(`### Policy Rules`);
+    for (const rule of policy.rules) {
+      const actionBadge = getPolicyActionBadge(rule.action);
+      lines.push(`- **${rule.findingId}**: ${actionBadge}`);
+      if (rule.originalSeverity && rule.newSeverity && rule.originalSeverity !== rule.newSeverity) {
+        lines.push(`  - ${badge(rule.originalSeverity)} → ${badge(rule.newSeverity)}`);
+      }
+      if (rule.reason) {
+        lines.push(`  - Reason: ${rule.reason}`);
+      }
+    }
+    lines.push(``);
+  } else {
+    lines.push(`No policy rules were applied.`);
+    lines.push(``);
+  }
+  
+  return lines.join("\n");
+};
+
+const getPolicyActionBadge = (action: RuleAction): string => {
+  if (action === "fail") return "🛑 FAIL";
+  if (action === "warn") return "⚠️ WARN";
+  if (action === "off") return "🔴 OFF";
+  return "🔵 IGNORE";
+};
+
+const formatBaselineComparison = (comparison: BaselineComparison): string => {
+  const lines: string[] = [];
+  lines.push(`## Baseline Comparison`);
+  lines.push(``);
+
+  if (comparison.isRegression) {
+    lines.push(`🔴 **REGRESSION DETECTED**`);
+  } else {
+    lines.push(`✅ No regression detected`);
+  }
+  lines.push(``);
+
+  if (comparison.newFindings.length > 0) {
+    lines.push(`### New Findings (${comparison.newFindings.length})`);
+    for (const f of comparison.newFindings) {
+      const severityBadge = badge(f.severity);
+      lines.push(`- ${severityBadge} **${f.id}** in package \`${f.packageName}\``);
+    }
+    lines.push(``);
+  }
+
+  if (comparison.resolvedFindings.length > 0) {
+    lines.push(`### Resolved Findings (${comparison.resolvedFindings.length})`);
+    for (const f of comparison.resolvedFindings) {
+      const severityBadge = badge(f.severity);
+      lines.push(`- ${severityBadge} **${f.id}** in package \`${f.packageName}\``);
+    }
+    lines.push(``);
+  }
+
+  if (comparison.severityChanges.length > 0) {
+    lines.push(`### Severity Changes (${comparison.severityChanges.length})`);
+    for (const c of comparison.severityChanges) {
+      const oldBadge = badge(c.oldSeverity);
+      const newBadge = badge(c.newSeverity);
+      lines.push(`- **${c.fingerprint.id}** in package \`${c.fingerprint.packageName}\`: ${oldBadge} → ${newBadge}`);
+    }
+    lines.push(``);
+  }
+
+  if (comparison.regressionReasons.length > 0) {
+    lines.push(`### Regression Reasons`);
+    for (const reason of comparison.regressionReasons) {
+      lines.push(`- ${reason}`);
+    }
+    lines.push(``);
+  }
+
+  if (comparison.newFindings.length === 0 &&
+      comparison.resolvedFindings.length === 0 &&
+      comparison.severityChanges.length === 0) {
+    lines.push(`No changes detected from baseline.`);
+    lines.push(``);
+  }
+
+  return lines.join("\n");
+};
+
+const formatChangedOnly = (changedPackages: string[], baselineFile?: string): string => {
+  const lines: string[] = [];
+  lines.push(`## Scanned Packages (Changed-only)`);
+  lines.push(``);
+
+  if (changedPackages.length === 0) {
+    lines.push(`No packages were identified as changed.`);
+  } else {
+    lines.push(`The following packages were scanned (only changed packages):`);
+    lines.push(``);
+    for (const pkgPath of changedPackages) {
+      const normalizedPath = pkgPath.replace(/\\/g, "/");
+      lines.push(`- \`${normalizedPath}\``);
+    }
+  }
+  lines.push(``);
+
+  // Verdict type
+  if (baselineFile) {
+    lines.push(`**Verdict type:** Regression verdict (comparing changed packages against baseline)`);
+  } else {
+    lines.push(`**Verdict type:** Partial verdict (only changed packages scanned, no baseline)`);
+    lines.push(`⚠️ Note: This is a partial scan. For complete verdict, provide a baseline file.`);
+  }
+  lines.push(``);
+
+  return lines.join("\n");
+};
+
 export function renderMarkdown(r: OverallResult): string {
   const lines: string[] = [];
   
@@ -134,6 +260,11 @@ export function renderMarkdown(r: OverallResult): string {
       lines.push(`- Using default configuration`);
     }
     lines.push(``);
+  }
+
+  // Policy applied (if available)
+  if (r.policyApplied) {
+    lines.push(formatPolicyApplied(r.policyApplied));
   }
 
   // Root package info
@@ -212,6 +343,17 @@ export function renderMarkdown(r: OverallResult): string {
     }
   }
   lines.push(``);
+
+  // Baseline comparison (if available)
+  if (r.baselineComparison) {
+    lines.push(formatBaselineComparison(r.baselineComparison));
+  }
+
+  // Changed-only (if available)
+  if (r.changedPackages) {
+    const baselineFile = (r as any).baselineFile; // Get baseline file if available
+    lines.push(formatChangedOnly(r.changedPackages, baselineFile));
+  }
 
   // Per-package findings
   if (r.packages && r.packages.length > 0) {
@@ -313,7 +455,12 @@ export const renderDetailedReport = (r: OverallResult): string => {
   
   lines.push(`**Overall:** ${badge(r.severity)}`);
   lines.push(``);
-  
+
+  // Policy applied (if available)
+  if (r.policyApplied) {
+    lines.push(formatPolicyApplied(r.policyApplied));
+  }
+
   // Detailed package usage section
   lines.push(`## Detailed Package Usage`);
   lines.push(``);
@@ -396,6 +543,17 @@ export const renderDetailedReport = (r: OverallResult): string => {
     }
   }
   lines.push(``);
-  
+
+  // Baseline comparison (if available)
+  if (r.baselineComparison) {
+    lines.push(formatBaselineComparison(r.baselineComparison));
+  }
+
+  // Changed-only (if available)
+  if (r.changedPackages) {
+    const baselineFile = (r as any).baselineFile; // Get baseline file if available
+    lines.push(formatChangedOnly(r.changedPackages, baselineFile));
+  }
+
   return lines.join("\n");
 };

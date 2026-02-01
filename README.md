@@ -23,7 +23,7 @@ bun-ready scan .
 
 ## Usage
 ```bash
-bun-ready scan <path> [--format md|json] [--out <file>] [--no-install] [--no-test] [--verbose] [--detailed]
+bun-ready scan <path> [--format md|json|sarif] [--out <file>] [--no-install] [--no-test] [--verbose] [--detailed] [--scope root|packages|all] [--fail-on green|yellow|red] [--ci] [--output-dir <dir>] [--rule <id>=<action>] [--max-warnings <n>] [--baseline <file>] [--update-baseline] [--changed-only] [--since <ref>]
 ```
 
 ## Examples:
@@ -237,6 +237,119 @@ Add it to the allowlist:
 ```
 
 Some packages have optional native modules that can be disabled or work fine with Bun.
+
+## v0.3 New Features
+
+### CI Mode
+
+Run in CI mode for stable, machine-friendly output:
+
+```bash
+bun-ready scan . --ci --output-dir .bun-ready-artifacts
+```
+
+**CI Mode Benefits:**
+- Reduced "human noise" in stdout
+- Stable section ordering in reports
+- CI summary block with top findings and next actions
+- Automatic artifact generation when `--output-dir` is specified
+
+### SARIF Export
+
+Generate SARIF 2.1.0 format for GitHub Code Scanning:
+
+```bash
+bun-ready scan . --format sarif --out bun-ready.sarif.json
+```
+
+### Policy-as-Code
+
+Enforce organization-specific migration policies:
+
+```bash
+# CLI flags
+bun-ready scan . --rule deps.native_addons=fail --max-warnings 5
+
+# Or in config file
+{
+  "rules": [
+    { "id": "deps.native_addons", "action": "fail" },
+    { "id": "scripts.lifecycle", "action": "off" }
+  ],
+  "thresholds": {
+    "maxWarnings": 10,
+    "maxPackagesRed": 2
+  }
+}
+```
+
+**Policy Sources** (priority order):
+1. CLI flags (`--rule`, `--max-warnings`)
+2. `bun-ready.config.json` file
+3. Default rules
+
+**Policy Actions:**
+- `fail` - Mark finding as failure
+- `warn` - Downgrade to warning
+- `off` - Disable this finding
+- `ignore` - Ignore this finding (don't report)
+
+### Baseline / Regression Detection
+
+Prevent regressions by comparing against a baseline:
+
+```bash
+# Create baseline (first time)
+bun-ready scan . --baseline bun-ready-baseline.json --update-baseline
+
+# In CI - compare against baseline
+bun-ready scan . --baseline bun-ready-baseline.json --ci
+```
+
+**Baseline Features:**
+- Detects new findings
+- Detects resolved findings
+- Detects severity changes (upgrades/downgrades)
+- Regression verdict: fails if new red findings or increased failures
+- Update baseline with `--update-baseline`
+
+### Changed-Only Scanning (Monorepos)
+
+Scan only changed packages to speed up large monorepo PRs:
+
+```bash
+bun-ready scan . --changed-only --since main
+```
+
+**Changed-Only Verdict Types:**
+- **Partial verdict** (no baseline): Warning about partial coverage
+- **Regression verdict** (with baseline): OK - comparing only changed packages
+
+### GitHub Action Integration
+
+Use bun-ready as a GitHub Action:
+
+```yaml
+name: bun-ready Check
+on: [pull_request]
+jobs:
+  bun-ready:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v1
+      - uses: ./  # Uses action.yml from repo
+        with:
+          fail-on: yellow
+          baseline: bun-ready-baseline.json
+```
+
+**Action Features:**
+- Automatic artifact upload
+- GitHub job summary generation
+- PR comment support
+- SARIF export for Code Scanning
+- Policy and baseline support
 
 ## What it checks (MVP)
 - package.json presence & shape

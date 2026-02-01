@@ -1,0 +1,134 @@
+name: 'bun-ready Check'
+description: 'Check if your project is ready to migrate to Bun with policy enforcement, regression detection, and CI integration'
+
+inputs:
+  path:
+    description: 'Path to the project directory (default: .)'
+    required: false
+    default: '.'
+  format:
+    description: 'Output format (md, json, sarif)'
+    required: false
+    default: 'md'
+  fail-on:
+    description: 'Fail on severity (green, yellow, red)'
+    required: false
+    default: 'red'
+  baseline:
+    description: 'Baseline file path for regression detection'
+    required: false
+  update-baseline:
+    description: 'Update baseline file after scan'
+    required: false
+    default: 'false'
+  changed-only:
+    description: 'Scan only changed packages (for monorepos)'
+    required: false
+    default: 'false'
+  since:
+    description: 'Git ref for changed packages (e.g., main, HEAD~1)'
+    required: false
+  output-dir:
+    description: 'Output directory for artifacts'
+    required: false
+    default: '.bun-ready-artifacts'
+  rule:
+    description: 'Policy rules (can be used multiple times, format: id=action)'
+    required: false
+  max-warnings:
+    description: 'Maximum warnings allowed (threshold)'
+    required: false
+
+outputs:
+  severity:
+    description: 'Overall severity (green/yellow/red)'
+  exit-code:
+    description: 'Exit code from bun-ready'
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Setup Bun
+      uses: oven-sh/setup-bun@v1
+      with:
+        bun-version: latest
+
+    - name: Install bun-ready
+      shell: bash
+      run: |
+        bun install -g bun-ready || {
+          echo "bun-ready not installed globally, installing locally..."
+          bun install
+        }
+
+    - name: Run bun-ready
+      shell: bash
+      id: bun-ready
+      run: |
+        # Build command args
+        CMD="bun-ready scan ${{ inputs.path }}"
+
+        # Add format
+        CMD="$CMD --format ${{ inputs.format }}"
+
+        # Add CI mode
+        CMD="$CMD --ci"
+
+        # Add output directory
+        CMD="$CMD --output-dir ${{ inputs.output-dir }}"
+
+        # Add fail-on if specified
+        if [ "${{ inputs.fail-on }}" != "red" ]; then
+          CMD="$CMD --fail-on ${{ inputs.fail-on }}"
+        fi
+
+        # Add baseline if specified
+        if [ -n "${{ inputs.baseline }}" ]; then
+          CMD="$CMD --baseline ${{ inputs.baseline }}"
+        fi
+
+        # Add update-baseline if true
+        if [ "${{ inputs.update-baseline }}" = "true" ]; then
+          CMD="$CMD --update-baseline"
+        fi
+
+        # Add changed-only if true
+        if [ "${{ inputs.changed-only }}" = "true" ]; then
+          CMD="$CMD --changed-only"
+        fi
+
+        # Add since if specified
+        if [ -n "${{ inputs.since }}" ]; then
+          CMD="$CMD --since ${{ inputs.since }}"
+        fi
+
+        # Add rules if specified
+        # Note: Multiple rules requires matrix or separate runs
+        if [ -n "${{ inputs.rule }}" ]; then
+          CMD="$CMD --rule ${{ inputs.rule }}"
+        fi
+
+        # Add max-warnings if specified
+        if [ -n "${{ inputs.max-warnings }}" ]; then
+          CMD="$CMD --max-warnings ${{ inputs.max-warnings }}"
+        fi
+
+        # Run command and capture exit code
+        set +e  # Don't exit on error
+        eval $CMD
+        EXIT_CODE=$?
+        set -e
+
+        # Set outputs
+        echo "severity=$(cat ${{ inputs.output-dir }}/bun-ready.json | grep -o '"severity":"[^"]*' | cut -d'"' -f4)" >> $GITHUB_OUTPUT
+        echo "exit-code=$EXIT_CODE" >> $GITHUB_OUTPUT
+
+        # Exit with original code
+        exit $EXIT_CODE
+
+    - name: Upload artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: bun-ready-reports
+        path: ${{ inputs.output-dir }}/
+        retention-days: 30
