@@ -1,10 +1,32 @@
-import type { OverallResult, Severity, PackageAnalysis } from "./types.js";
+import type { OverallResult, Severity, PackageAnalysis, FindingsSummary } from "./types.js";
 import { stableSort } from "./util.js";
 
 const badge = (s: Severity): string => {
   if (s === "green") return "🟢 GREEN";
   if (s === "yellow") return "🟡 YELLOW";
   return "🔴 RED";
+};
+
+const getReadinessMessage = (severity: Severity, hasRedFindings: boolean): string => {
+  if (severity === "green" && !hasRedFindings) {
+    return "✅ Вітаю, ви готові до переходу на Bun!";
+  }
+  if (severity === "yellow") {
+    return "⚠️ Нажаль ви не готові до переходу на Bun, але це можливо з деякими змінами";
+  }
+  return "❌ Нажаль ви не готові до переходу на Bun через критичні проблеми";
+};
+
+const formatFindingsTable = (summary: FindingsSummary): string => {
+  const lines: string[] = [];
+  lines.push(`## Findings Summary`);
+  lines.push(`| Status | Count |`);
+  lines.push(`|--------|-------|`);
+  lines.push(`| 🟢 Green | ${summary.green} |`);
+  lines.push(`| 🟡 Yellow | ${summary.yellow} |`);
+  lines.push(`| 🔴 Red | ${summary.red} |`);
+  lines.push(`| **Total** | **${summary.total}** |`);
+  return lines.join("\n");
 };
 
 const getTopFindings = (pkg: PackageAnalysis, count: number = 3): string[] => {
@@ -28,10 +50,54 @@ const packageRow = (pkg: PackageAnalysis): string => {
   return `| ${name} | \`${path}\` | ${severity} | ${topFindings} |`;
 };
 
+const formatPackageStats = (pkg: PackageAnalysis): string[] => {
+  const lines: string[] = [];
+  if (pkg.stats) {
+    lines.push(`- Total dependencies: ${pkg.stats.totalDependencies}`);
+    lines.push(`- Total devDependencies: ${pkg.stats.totalDevDependencies}`);
+    lines.push(`- Clean dependencies: ${pkg.stats.cleanDependencies}`);
+    lines.push(`- Clean devDependencies: ${pkg.stats.cleanDevDependencies}`);
+    lines.push(`- Dependencies with findings: ${pkg.stats.riskyDependencies}`);
+    lines.push(`- DevDependencies with findings: ${pkg.stats.riskyDevDependencies}`);
+  }
+  if (pkg.packageUsage) {
+    lines.push(`- **Total files analyzed**: ${pkg.packageUsage.analyzedFiles}`);
+    // Count packages that are actually used in code
+    const usedPackages = Array.from(pkg.packageUsage.usageByPackage.values())
+      .filter((u) => u.fileCount > 0).length;
+    lines.push(`- **Packages used in code**: ${usedPackages}`);
+  }
+  return lines;
+};
+
 export function renderMarkdown(r: OverallResult): string {
   const lines: string[] = [];
-  lines.push(`# bun-ready report`);
+  
+  // Get Bun version from process.version (this will be the Node version running bun-ready)
+  const bunVersion = process.version;
+  
+  // Check if there are red findings
+  const hasRedFindings = r.findings.some((f) => f.severity === "red");
+  
+  // Get readiness message
+  const readinessMessage = getReadinessMessage(r.severity, hasRedFindings);
+  
+  // Header with tool name and Bun version
+  lines.push(`# bun-ready report - Tested with Bun ${bunVersion}`);
   lines.push(``);
+  lines.push(readinessMessage);
+  lines.push(``);
+  
+  // Findings Summary Table - calculate from root findings
+  const rootFindingsSummary: FindingsSummary = {
+    green: r.findings.filter((f) => f.severity === "green").length,
+    yellow: r.findings.filter((f) => f.severity === "yellow").length,
+    red: r.findings.filter((f) => f.severity === "red").length,
+    total: r.findings.length
+  };
+  lines.push(formatFindingsTable(rootFindingsSummary));
+  lines.push(``);
+  
   lines.push(`**Overall:** ${badge(r.severity)}`);
   lines.push(``);
   lines.push(`## Summary`);
@@ -119,6 +185,14 @@ export function renderMarkdown(r: OverallResult): string {
     lines.push(``);
   }
 
+  // Root package summary
+  const rootPkgForStats = r.packages?.find((p) => p.path === r.repo.packageJsonPath);
+  if (rootPkgForStats && rootPkgForStats.stats) {
+    lines.push(`## Package Summary`);
+    for (const l of formatPackageStats(rootPkgForStats)) lines.push(l);
+    lines.push(``);
+  }
+
   // Root findings
   lines.push(`## Root Findings`);
   if (r.findings.length === 0) {
@@ -152,6 +226,13 @@ export function renderMarkdown(r: OverallResult): string {
       // Package summary
       for (const l of pkg.summaryLines) lines.push(`- ${l}`);
       lines.push(``);
+
+      // Package stats
+      if (pkg.stats) {
+        lines.push(`**Package Summary**`);
+        for (const l of formatPackageStats(pkg)) lines.push(l);
+        lines.push(``);
+      }
 
       // Package install/test results
       if (pkg.install) {
@@ -198,3 +279,123 @@ export function renderMarkdown(r: OverallResult): string {
 
   return lines.join("\n");
 }
+
+/**
+ * Render detailed report with all file paths for package usage
+ */
+export const renderDetailedReport = (r: OverallResult): string => {
+  const lines: string[] = [];
+  
+  // Get Bun version from process.version
+  const bunVersion = process.version;
+  
+  // Check if there are red findings
+  const hasRedFindings = r.findings.some((f) => f.severity === "red");
+  
+  // Get readiness message
+  const readinessMessage = getReadinessMessage(r.severity, hasRedFindings);
+  
+  // Header with tool name and Bun version
+  lines.push(`# bun-ready detailed report - Tested with Bun ${bunVersion}`);
+  lines.push(``);
+  lines.push(readinessMessage);
+  lines.push(``);
+  
+  // Findings Summary Table
+  const rootFindingsSummary: FindingsSummary = {
+    green: r.findings.filter((f) => f.severity === "green").length,
+    yellow: r.findings.filter((f) => f.severity === "yellow").length,
+    red: r.findings.filter((f) => f.severity === "red").length,
+    total: r.findings.length
+  };
+  lines.push(formatFindingsTable(rootFindingsSummary));
+  lines.push(``);
+  
+  lines.push(`**Overall:** ${badge(r.severity)}`);
+  lines.push(``);
+  
+  // Detailed package usage section
+  lines.push(`## Detailed Package Usage`);
+  lines.push(``);
+  
+  let hasUsageInfo = false;
+  
+  // Collect all packages with usage info
+  if (r.packages && r.packages.length > 0) {
+    const sortedPackages = stableSort(r.packages, (p) => p.name);
+    
+    for (const pkg of sortedPackages) {
+      if (!pkg.packageUsage) continue;
+      
+      hasUsageInfo = true;
+      
+      lines.push(`### ${pkg.name}`);
+      lines.push(``);
+      lines.push(`**Total files analyzed:** ${pkg.packageUsage.analyzedFiles}`);
+      lines.push(`**Total packages:** ${pkg.packageUsage.totalPackages}`);
+      lines.push(``);
+      
+      // Get packages sorted by usage count (descending)
+      const sortedUsage = Array.from(pkg.packageUsage.usageByPackage.values())
+        .filter((u) => u.fileCount > 0)
+        .sort((a, b) => b.fileCount - a.fileCount);
+      
+      if (sortedUsage.length === 0) {
+        lines.push(`No package usage detected in source files.`);
+        lines.push(``);
+        continue;
+      }
+      
+      // List each package and its usage
+      for (const usage of sortedUsage) {
+        // Get package version from dependencies
+        const depVersion = pkg.dependencies[usage.packageName] || pkg.devDependencies[usage.packageName] || "";
+        const versionStr = depVersion ? `@${depVersion}` : "";
+        
+        lines.push(`#### ${usage.packageName}${versionStr} (${usage.fileCount} file${usage.fileCount !== 1 ? "s" : ""})`);
+        lines.push(``);
+        
+        if (usage.filePaths.length > 0) {
+          for (const filePath of usage.filePaths) {
+            lines.push(`- ${filePath}`);
+          }
+        } else {
+          lines.push(`- No file paths collected`);
+        }
+        
+        lines.push(``);
+      }
+    }
+  }
+  
+  if (!hasUsageInfo) {
+    lines.push(`No package usage information available. Run with --detailed flag to enable usage analysis.`);
+    lines.push(``);
+  }
+  
+  // Add regular findings below
+  lines.push(`---`);
+  lines.push(``);
+  
+  // Root findings
+  lines.push(`## Root Findings`);
+  if (r.findings.length === 0) {
+    lines.push(`No findings for root package.`);
+  } else {
+    const findings = stableSort(r.findings, (f) => `${f.severity}:${f.id}`);
+    for (const f of findings) {
+      lines.push(`### ${f.title} (${badge(f.severity)})`);
+      lines.push(``);
+      for (const d of f.details) lines.push(`- ${d}`);
+      if (f.hints.length > 0) {
+        lines.push(``);
+        lines.push(`**Hints:**`);
+        for (const h of f.hints) lines.push(`- ${h}`);
+      }
+      lines.push(``);
+    }
+  }
+  lines.push(``);
+  
+  return lines.join("\n");
+};

@@ -1,4 +1,14 @@
-# bun-ready report
+# bun-ready report - Tested with Bun v24.3.0
+
+⚠️ Нажаль ви не готові до переходу на Bun, але це можливо з деякими змінами
+
+## Findings Summary
+| Status | Count |
+|--------|-------|
+| 🟢 Green | 0 |
+| 🟡 Yellow | 1 |
+| 🔴 Red | 0 |
+| **Total** | **1** |
 
 **Overall:** 🟡 YELLOW
 
@@ -35,6 +45,14 @@
 - Native addon risk: no
 - bun install dry-run: skipped
 - bun test: skipped
+
+**Package Summary**
+- Total dependencies: 1
+- Total devDependencies: 0
+- Clean dependencies: 1
+- Clean devDependencies: 0
+- Dependencies with findings: 0
+- DevDependencies with findings: 0
 
 **Findings:**
 

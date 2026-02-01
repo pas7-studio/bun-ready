@@ -3,7 +3,7 @@ import { promises as fs } from "node:fs";
 import path from "node:path";
 import type { ReportFormat, Severity, FailOnPolicy } from "./types.js";
 import { analyzeRepoOverall } from "./analyze.js";
-import { renderMarkdown } from "./report_md.js";
+import { renderMarkdown, renderDetailedReport } from "./report_md.js";
 import { renderJson } from "./report_json.js";
 import { mergeConfigWithOpts } from "./config.js";
 
@@ -12,7 +12,7 @@ const usage = (): string => {
     "bun-ready",
     "",
     "Usage:",
-    "  bun-ready scan <path> [--format md|json] [--out <file>] [--no-install] [--no-test] [--verbose] [--scope root|packages|all] [--fail-on green|yellow|red]",
+    "  bun-ready scan <path> [--format md|json] [--out <file>] [--no-install] [--no-test] [--verbose] [--detailed] [--scope root|packages|all] [--fail-on green|yellow|red]",
     "",
     "Options:",
     "  --format md|json       Output format (default: md)",
@@ -20,6 +20,7 @@ const usage = (): string => {
     "  --no-install           Skip bun install --dry-run",
     "  --no-test             Skip bun test",
     "  --verbose              Show detailed output",
+    "  --detailed            Show detailed package usage report with file paths",
     "  --scope root|packages|all  Scan scope for monorepos (default: all)",
     "  --fail-on green|yellow|red  Fail policy (default: red)",
     "",
@@ -31,7 +32,7 @@ const usage = (): string => {
   ].join("\n");
 };
 
-const parseArgs = (argv: string[]): { cmd: string; opts: { repoPath: string; format: ReportFormat; outFile: string | null; runInstall: boolean; runTest: boolean; verbose: boolean; scope: "root" | "packages" | "all"; failOn?: FailOnPolicy } } => {
+const parseArgs = (argv: string[]): { cmd: string; opts: { repoPath: string; format: ReportFormat; outFile: string | null; runInstall: boolean; runTest: boolean; verbose: boolean; detailed: boolean; scope: "root" | "packages" | "all"; failOn?: FailOnPolicy } } => {
   const args = argv.slice(2);
   const cmd = args[0] ?? "";
   if (cmd !== "scan") {
@@ -44,6 +45,7 @@ const parseArgs = (argv: string[]): { cmd: string; opts: { repoPath: string; for
         runInstall: true,
         runTest: true,
         verbose: false,
+        detailed: false,
         scope: "all"
       }
     };
@@ -55,6 +57,7 @@ const parseArgs = (argv: string[]): { cmd: string; opts: { repoPath: string; for
   let runInstall = true;
   let runTest = true;
   let verbose = false;
+  let detailed = false;
   let scope: "root" | "packages" | "all" = "all";
   let failOn: FailOnPolicy | undefined;
 
@@ -83,6 +86,10 @@ const parseArgs = (argv: string[]): { cmd: string; opts: { repoPath: string; for
       verbose = true;
       continue;
     }
+    if (a === "--detailed") {
+      detailed = true;
+      continue;
+    }
     if (a === "--scope") {
       const v = args[i + 1] ?? "";
       if (v === "root" || v === "packages" || v === "all") scope = v;
@@ -105,6 +112,7 @@ const parseArgs = (argv: string[]): { cmd: string; opts: { repoPath: string; for
     runInstall,
     runTest,
     verbose,
+    detailed,
     scope
   };
   
@@ -152,7 +160,14 @@ const main = async (): Promise<void> => {
   }
 
   // Load config
-  const config = await mergeConfigWithOpts(null, opts);
+  const configOpts: any = {};
+  if (opts.failOn !== undefined) {
+    configOpts.failOn = opts.failOn;
+  }
+  if (opts.detailed !== undefined) {
+    configOpts.detailed = opts.detailed;
+  }
+  const config = await mergeConfigWithOpts(null, configOpts);
 
   // Create scan options with new fields
   const scanOpts: any = {
@@ -186,8 +201,8 @@ const main = async (): Promise<void> => {
     }
   }
 
-  const out = opts.format === "json" ? renderJson(res) : renderMarkdown(res);
-  const target = opts.outFile ?? (opts.format === "json" ? "bun-ready.json" : "bun-ready.md");
+  const out = opts.format === "json" ? renderJson(res) : (opts.detailed ? renderDetailedReport(res) : renderMarkdown(res));
+  const target = opts.outFile ?? (opts.format === "json" ? "bun-ready.json" : (opts.detailed ? "bun-ready-detailed.md" : "bun-ready.md"));
 
   const resolved = path.resolve(process.cwd(), target);
   await fs.writeFile(resolved, out, "utf8");

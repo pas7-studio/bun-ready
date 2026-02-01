@@ -20,6 +20,7 @@ export type BunReadyConfig = {
   ignoreFindings?: string[];
   nativeAddonAllowlist?: string[];
   failOn?: FailOnPolicy;
+  detailed?: boolean;
 };
 
 // Нові типи для workspaces
@@ -44,6 +45,9 @@ export type PackageAnalysis = {
     yarnLock: boolean;
     pnpmLock: boolean;
   };
+  stats?: PackageStats;
+  findingsSummary?: FindingsSummary;
+  packageUsage?: PackageUsageStats;
 };
 
 // Оновити ScanOptions з новими полями
@@ -54,6 +58,7 @@ export type ScanOptions = {
   runInstall: boolean;
   runTest: boolean;
   verbose: boolean;
+  detailed: boolean;
   scope?: WorkspaceScope;
   failOn?: FailOnPolicy;
 };
@@ -73,6 +78,35 @@ export type Finding = {
   details: string[];
   hints: string[];
 };
+
+export type PackageStats = {
+  totalDependencies: number;
+  totalDevDependencies: number;
+  cleanDependencies: number;
+  cleanDevDependencies: number;
+  riskyDependencies: number;
+  riskyDevDependencies: number;
+};
+
+export interface FindingsSummary {
+  green: number;
+  yellow: number;
+  red: number;
+  total: number;
+}
+
+// New types for package usage analysis
+export interface PackageUsage {
+  packageName: string;
+  fileCount: number;
+  filePaths: string[];
+}
+
+export interface PackageUsageStats {
+  totalPackages: number;
+  analyzedFiles: number;
+  usageByPackage: Map<string, PackageUsage>; // packageName -> usage info
+}
 
 // Новий тип для OverallResult (v0.2)
 export type OverallResult = {

@@ -4,7 +4,8 @@ import { promises as fs } from "node:fs";
 import type { OverallResult, PackageAnalysis, ScanOptions, Severity } from "./types.js";
 import { exec } from "./spawn.js";
 import { fileExists, normalizeRepoPath, readJsonFile, truncateLines } from "./util.js";
-import { detectLockfileSignals, detectNativeAddonRiskV2, detectScriptRisks, detectRuntimeApiRisks, detectPmAssumptions, summarizeSeverity } from "./heuristics.js";
+import { calculatePackageStats, calculateFindingsSummary, detectLockfileSignals, detectNativeAddonRiskV2, detectScriptRisks, detectRuntimeApiRisks, detectPmAssumptions, summarizeSeverity } from "./heuristics.js";
+import { analyzePackageUsageAsync } from "./usage_analyzer.js";
 import { parseInstallLogs, getInstallSeverity } from "./bun_logs.js";
 import { discoverWorkspaces, hasWorkspaces, type WorkspacePackage } from "./workspaces.js";
 import { readConfig } from "./config.js";
@@ -242,6 +243,24 @@ export async function analyzeSinglePackage(
   // Calculate severity
   const severity = summarizeSeverity(findings, installOk, testOk);
 
+  // Calculate package statistics
+  const stats = calculatePackageStats(info.pkg, findings);
+
+  // Calculate findings summary
+  const findingsSummary = calculateFindingsSummary(findings);
+
+  // Analyze package usage (if detailed mode)
+  let packageUsage: PackageAnalysis["packageUsage"];
+  if (opts.detailed) {
+    try {
+      const usage = await analyzePackageUsageAsync(info.pkg, packagePath, true);
+      packageUsage = usage;
+    } catch (error) {
+      // Silently fail if usage analysis fails
+      // This should not break the overall analysis
+    }
+  }
+
   // Build summary lines
   const summaryLines: string[] = [];
   summaryLines.push(`Lockfiles: ${info.lockfiles.bunLock || info.lockfiles.bunLockb ? "bun" : "non-bun or missing"}`);
@@ -250,7 +269,7 @@ export async function analyzeSinglePackage(
   summaryLines.push(`bun install dry-run: ${install ? (install.ok ? "ok" : "failed") : "skipped"}`);
   summaryLines.push(`bun test: ${test ? (test.ok ? "ok" : "failed") : "skipped"}`);
 
-  return {
+  const result: PackageAnalysis = {
     name,
     path: packagePath,
     severity,
@@ -262,8 +281,16 @@ export async function analyzeSinglePackage(
     dependencies: info.dependencies,
     devDependencies: info.devDependencies,
     optionalDependencies: info.optionalDependencies,
-    lockfiles: info.lockfiles
+    lockfiles: info.lockfiles,
+    stats,
+    findingsSummary
   };
+
+  if (packageUsage !== undefined) {
+    result.packageUsage = packageUsage;
+  }
+
+  return result;
 }
 
 /**

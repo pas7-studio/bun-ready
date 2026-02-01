@@ -66,3 +66,52 @@ When adding new finding IDs:
 - Test --scope flags (root, packages, all)
 - Ensure deterministic ordering of packages in reports
 - Never modify user repositories (only read)
+
+## Package Usage Analysis
+
+### Supported Import Types
+
+The usage analyzer supports the following import patterns:
+
+1. **ES6 Default Import**: `import express from 'express';`
+2. **ES6 Named Import**: `import { Router } from 'express';`
+3. **ES6 Namespace Import**: `import * as express from 'express';`
+4. **Dynamic Import**: `const express = await import('express');`
+5. **CommonJS Require**: `const express = require('express');`
+
+### Analysis Logic
+
+The analyzer:
+1. Finds all source files with extensions: `.ts`, `.js`, `.tsx`, `.jsx`, `.mts`, `.mjs`
+2. Reads each file and extracts package imports using regex patterns
+3. Ignores local imports (starting with `./` or `../`)
+4. Matches imported packages against dependencies and devDependencies from package.json
+5. Counts how many files import each package
+6. Optionally collects all file paths where each package is used
+
+### Implementation Rules
+
+- **Never modify user files**: Only read source files
+- **Ignore node_modules**: Skip scanning inside node_modules directories
+- **Ignore hidden directories**: Skip directories starting with `.`
+- **Handle errors gracefully**: Skip files that cannot be read, fail silently
+- **Deterministic ordering**: Sort file paths and packages for consistent output
+
+### Usage in Reports
+
+When `--detailed` is enabled:
+- Package Summary section shows total files analyzed and packages used
+- Detailed Package Usage section lists each package with:
+  - Package name and version
+  - Number of files that import it
+  - List of all file paths where it's used
+- Packages with 0 usage are still listed (with empty file paths)
+
+### Testing
+
+Always test:
+- Mixed ES6 and CommonJS imports in same project
+- Scoped packages (e.g., `@nestjs/common`)
+- Multiple imports of same package across different files
+- Nested directories and complex file structures
+- Edge cases: empty project, no source files, uninstalled packages

@@ -1,4 +1,5 @@
-import type { BunReadyConfig, Finding, RepoInfo, Severity } from "./types.js";
+import type { BunReadyConfig, FindingsSummary, Finding, PackageStats, RepoInfo, Severity } from "./types.js";
+import type { PackageJson } from "./internal_types.js";
 import { stableSort } from "./util.js";
 
 const NATIVE_SUSPECTS = [
@@ -478,4 +479,89 @@ export const summarizeSeverity = (findings: Finding[], installOk: boolean | null
   if (installOk === false) sev = "red";
   if (testOk === false) sev = "red";
   return sev;
+};
+
+/**
+ * Calculate package statistics
+ * - Counts total dependencies and devDependencies
+ * - Determines which packages are clean vs risky based on findings
+ */
+export const calculatePackageStats = (
+  pkg: PackageJson,
+  findings: Finding[]
+): PackageStats => {
+  const dependencies = pkg.dependencies || {};
+  const devDependencies = pkg.devDependencies || {};
+
+  // Get all dependency names mentioned in findings
+  const riskyPackageNames = new Set<string>();
+  for (const finding of findings) {
+    for (const detail of finding.details) {
+      // Parse package names from detail strings like "sharp@^0.33.0"
+      // or "sharp: ^0.33.0"
+      const match = detail.match(/^([a-zA-Z0-9_@\/\.\-]+)/);
+      if (match && match[1]) {
+        // Extract the package name (before @ or :)
+        const fullPkg = match[1];
+        const pkgName = fullPkg.split(/[@:]/)[0];
+        if (pkgName) {
+          riskyPackageNames.add(pkgName);
+        }
+      }
+    }
+  }
+
+  // Count clean vs risky dependencies
+  let cleanDependencies = 0;
+  let riskyDependencies = 0;
+  let cleanDevDependencies = 0;
+  let riskyDevDependencies = 0;
+
+  for (const depName of Object.keys(dependencies)) {
+    if (riskyPackageNames.has(depName)) {
+      riskyDependencies++;
+    } else {
+      cleanDependencies++;
+    }
+  }
+
+  for (const depName of Object.keys(devDependencies)) {
+    if (riskyPackageNames.has(depName)) {
+      riskyDevDependencies++;
+    } else {
+      cleanDevDependencies++;
+    }
+  }
+
+  return {
+    totalDependencies: Object.keys(dependencies).length,
+    totalDevDependencies: Object.keys(devDependencies).length,
+    cleanDependencies,
+    cleanDevDependencies,
+    riskyDependencies,
+    riskyDevDependencies
+  };
+};
+
+export const calculateFindingsSummary = (findings: Finding[]): FindingsSummary => {
+  let green = 0;
+  let yellow = 0;
+  let red = 0;
+
+  for (const finding of findings) {
+    if (finding.severity === "green") {
+      green++;
+    } else if (finding.severity === "yellow") {
+      yellow++;
+    } else if (finding.severity === "red") {
+      red++;
+    }
+  }
+
+  return {
+    green,
+    yellow,
+    red,
+    total: green + yellow + red
+  };
 };

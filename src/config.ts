@@ -70,6 +70,11 @@ function validateConfig(config: unknown): BunReadyConfig | null {
     }
   }
 
+  // Validate detailed
+  if (typeof cfg.detailed === "boolean") {
+    result.detailed = cfg.detailed;
+  }
+
   // Return null if no valid fields found
   if (Object.keys(result).length === 0) {
     return null;
@@ -83,9 +88,9 @@ function validateConfig(config: unknown): BunReadyConfig | null {
  */
 export function mergeConfigWithOpts(
   config: BunReadyConfig | null,
-  opts: { failOn?: FailOnPolicy }
+  opts: { failOn?: FailOnPolicy; detailed?: boolean }
 ): BunReadyConfig | null {
-  if (!config && !opts.failOn) {
+  if (!config && !opts.failOn && opts.detailed === undefined) {
     return null;
   }
 
@@ -96,6 +101,10 @@ export function mergeConfigWithOpts(
   // CLI options override config
   if (opts.failOn) {
     result.failOn = opts.failOn;
+  }
+
+  if (opts.detailed !== undefined) {
+    result.detailed = opts.detailed;
   }
 
   return Object.keys(result).length > 0 ? result : null;

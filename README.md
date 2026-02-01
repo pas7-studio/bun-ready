@@ -23,7 +23,7 @@ bun-ready scan .
 
 ## Usage
 ```bash
-bun-ready scan <path> [--format md|json] [--out <file>] [--no-install] [--no-test] [--verbose]
+bun-ready scan <path> [--format md|json] [--out <file>] [--no-install] [--no-test] [--verbose] [--detailed]
 ```
 
 ## Examples:
@@ -32,6 +32,7 @@ bun-ready scan .
 bun-ready scan . --out bun-ready.md
 bun-ready scan ./packages/api --format json
 bun-ready scan . --no-install --no-test
+bun-ready scan . --detailed
 ```
 
 ## Exit codes
@@ -71,6 +72,7 @@ You can create a `bun-ready.config.json` file in your repository root to customi
 | `ignoreFindings` | Array of finding IDs to ignore | `[]` |
 | `nativeAddonAllowlist` | Packages to exclude from native addon checks | `[]` |
 | `failOn` | When to return non-zero exit code | `"red"` |
+| `detailed` | Enable detailed package usage analysis | `false` |
 
 ### New CLI Flags
 
@@ -80,10 +82,68 @@ You can create a `bun-ready.config.json` file in your repository root to customi
 - `all`: Scan root and all workspace packages (default)
 
 `--fail-on green|yellow|red`
-- Controls when bun-ready exits with a failure code
-- `green`: Fail on anything not green (exit 3)
-- `yellow`: Fail on red only (exit 3), yellow passes (exit 0)
-- `red`: Default behavior - green=0, yellow=2, red=3
+ - Controls when bun-ready exits with a failure code
+ - `green`: Fail on anything not green (exit 3)
+ - `yellow`: Fail on red only (exit 3), yellow passes (exit 0)
+ - `red`: Default behavior - green=0, yellow=2, red=3
+
+`--detailed`
+ - Enables detailed package usage analysis
+ - Shows which packages are used in which files
+ - Provides file-by-file breakdown of imports
+ - Output is written to `bun-ready-detailed.md` instead of `bun-ready.md`
+ - Requires scanning of all `.ts`, `.js`, `.tsx`, `.jsx` files in the project
+ - **Note:** This operation is slower as it needs to read and parse all source files
+
+## Detailed Reports
+
+When using the `--detailed` flag, bun-ready provides comprehensive package usage information:
+
+### What it analyzes:
+- All source files with extensions: `.ts`, `.js`, `.tsx`, `.jsx`, `.mts`, `.mjs`
+- Import patterns supported:
+  - ES6 imports: `import ... from 'package-name'`
+  - Namespace imports: `import * as name from 'package-name'`
+  - Dynamic imports: `import('package-name')`
+  - CommonJS requires: `require('package-name')`
+- Local imports (starting with `./` or `../`) are ignored
+- Skips `node_modules` and hidden directories
+
+### Output format:
+
+The detailed report shows:
+1. **Package Summary** - Total files analyzed and packages used
+2. **Per-package usage** - For each package in your dependencies:
+   - How many files import it
+   - List of all file paths where it's used
+3. **Regular findings** - All migration risk findings from standard analysis
+
+### Example:
+```bash
+bun-ready scan . --detailed
+```
+
+This generates `bun-ready-detailed.md` with sections like:
+
+```markdown
+### @nestjs/common (15 files)
+- src/main.ts
+- src/app.module.ts
+- src/auth/auth.service.ts
+...
+```
+
+### Configuration:
+
+You can also enable detailed reports via config file:
+
+```json
+{
+  "detailed": true
+}
+```
+
+When `detailed` is set in config, it acts as if `--detailed` was passed, unless overridden by CLI flags.
 
 ## How Scoring Works
 
