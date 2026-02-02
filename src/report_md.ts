@@ -10,12 +10,12 @@ const badge = (s: Severity): string => {
 
 const getReadinessMessage = (severity: Severity, hasRedFindings: boolean): string => {
   if (severity === "green" && !hasRedFindings) {
-    return "✅ Вітаю, ви готові до переходу на Bun!";
+    return "✅ Congratulations, you're ready to migrate to Bun!";
   }
   if (severity === "yellow") {
-    return "⚠️ Нажаль ви не готові до переходу на Bun, але це можливо з деякими змінами";
+    return "⚠️ Migration is possible with some adjustments required";
   }
-  return "❌ Нажаль ви не готові до переходу на Bun через критичні проблеми";
+  return "❌ Not ready for Bun migration due to critical issues";
 };
 
 const formatFindingsTable = (summary: FindingsSummary, cleanPackagesCount?: number): string => {
@@ -24,7 +24,7 @@ const formatFindingsTable = (summary: FindingsSummary, cleanPackagesCount?: numb
   lines.push(`| Status | Count |`);
   lines.push(`|--------|-------|`);
   
-  // Показуємо пакети за статусом (новий формат)
+  // Show packages by status (new format)
   if (summary.greenPackagesCount !== undefined) {
     lines.push(`| 🟢 Green packages | ${summary.greenPackagesCount} |`);
   }
@@ -38,7 +38,7 @@ const formatFindingsTable = (summary: FindingsSummary, cleanPackagesCount?: numb
     lines.push(`| **Total packages** | **${summary.totalPackagesCount}** |`);
   }
   
-  // Для зворотної сумісності показуємо старий формат, якщо новий немає
+  // For backwards compatibility show old format if new is not available
   if (summary.greenPackagesCount === undefined) {
     // Show clean packages count if available
     if (cleanPackagesCount !== undefined && cleanPackagesCount > 0) {
@@ -238,17 +238,17 @@ export function renderMarkdown(r: OverallResult): string {
   lines.push(readinessMessage);
   lines.push(``);
   
-  // Findings Summary Table - розрахувати статус пакетів
+  // Findings Summary Table - calculate package status
   const rootPkgForSummary = r.packages?.find((p) => p.path === path.dirname(r.repo.packageJsonPath));
 
   const rootFindingsSummary: FindingsSummary = {
-    // Старий формат (deprecated)
+    // Old format (deprecated)
     green: r.findings.filter((f) => f.severity === "green").length,
     yellow: r.findings.filter((f) => f.severity === "yellow").length,
     red: r.findings.filter((f) => f.severity === "red").length,
     total: r.findings.length,
     
-    // Новий формат - класифікувати пакети
+    // New format - classify packages
     greenPackagesCount: rootPkgForSummary?.greenPackages?.length || 0,
     yellowPackagesCount: rootPkgForSummary?.yellowPackages?.length || 0,
     redPackagesCount: rootPkgForSummary?.redPackages?.length || 0,
@@ -494,17 +494,17 @@ export const renderDetailedReport = (r: OverallResult): string => {
   lines.push(readinessMessage);
   lines.push(``);
   
-  // Findings Summary Table - розрахувати статус пакетів
+  // Findings Summary Table - calculate package status
   const rootPkgForSummary = r.packages?.find((p) => p.path === path.dirname(r.repo.packageJsonPath));
 
   const rootFindingsSummary: FindingsSummary = {
-    // Старий формат (deprecated)
+    // Old format (deprecated)
     green: r.findings.filter((f) => f.severity === "green").length,
     yellow: r.findings.filter((f) => f.severity === "yellow").length,
     red: r.findings.filter((f) => f.severity === "red").length,
     total: r.findings.length,
     
-    // Новий формат - класифікувати пакети
+    // New format - classify packages
     greenPackagesCount: rootPkgForSummary?.greenPackages?.length || 0,
     yellowPackagesCount: rootPkgForSummary?.yellowPackages?.length || 0,
     redPackagesCount: rootPkgForSummary?.redPackages?.length || 0,

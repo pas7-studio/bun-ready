@@ -262,6 +262,8 @@ const main = async (): Promise<void> => {
 
   if (cmd !== "scan") {
     process.stderr.write(usage() + "\n");
+    // Ensure stderr is flushed before exiting
+    await new Promise<void>((resolve) => setImmediate(() => resolve()));
     process.exit(1);
   }
 
@@ -330,6 +332,8 @@ const main = async (): Promise<void> => {
       baselineData = await loadBaseline(opts.baseline.file);
     } catch (error) {
       process.stderr.write(`Failed to load baseline: ${error instanceof Error ? error.message : String(error)}\n`);
+      // Ensure stderr is flushed before exiting
+      await new Promise<void>((resolve) => setImmediate(() => resolve()));
       process.exit(1);
     }
   }
@@ -450,11 +454,16 @@ const main = async (): Promise<void> => {
 
   // Calculate exit code
   const exitCodeValue = calculateExitCode(finalResult.severity, config?.failOn || opts.failOn);
+  // Ensure stdout is flushed before exiting (important for Windows)
+  await new Promise<void>((resolve) => setImmediate(() => resolve()));
   process.exit(exitCodeValue);
 };
 
 main().catch((e) => {
   const msg = e instanceof Error ? e.message : String(e);
   process.stderr.write(`bun-ready failed: ${msg}\n`);
-  process.exit(3);
+  // Ensure stderr is flushed before exiting
+  new Promise<void>((resolve) => setImmediate(() => resolve())).then(() => {
+    process.exit(3);
+  });
 });

@@ -1,5 +1,5 @@
 // File: src/types.ts
-// Існуючі типи - зберегти без змін
+// Existing types - keep unchanged
 export type Severity = "green" | "yellow" | "red";
 
 export type ReportFormat = "md" | "json" | "sarif";
@@ -12,7 +12,7 @@ export type TestResult =
   | { ok: true; summary: string; logs: string[]; skipReason?: string }
   | { ok: false; summary: string; logs: string[]; skipReason?: string };
 
-// Нові типи для конфіг файлу
+// New types for config file
 export type FailOnPolicy = "green" | "yellow" | "red";
 
 export type BunReadyConfig = {
@@ -26,7 +26,7 @@ export type BunReadyConfig = {
   thresholds?: PolicyThresholds;
 };
 
-// Нові типи для workspaces
+// New types for workspaces
 export type WorkspaceScope = "root" | "packages" | "all";
 
 export type PackageAnalysis = {
@@ -54,12 +54,12 @@ export type PackageAnalysis = {
   cleanDependencies?: string[];
   cleanDevDependencies?: string[];
   // Package classification fields
-  greenPackages?: string[];      // Пакети без проблем
-  yellowPackages?: string[];    // Пакети з проблемами
-  redPackages?: string[];       // Критичні пакети
+  greenPackages?: string[];      // Packages without issues
+  yellowPackages?: string[];    // Packages with issues
+  redPackages?: string[];       // Critical packages
 };
 
-// Оновити ScanOptions з новими полями
+// Update ScanOptions with new fields
 export type ScanOptions = {
   repoPath: string;
   format?: ReportFormat;
@@ -74,14 +74,14 @@ export type ScanOptions = {
   outputDir?: string;
 };
 
-// Новий тип для результатів parsing bun install logs
+// New type for parsing bun install logs results
 export type InstallLogAnalysis = {
   blockedDeps: string[];
   trustedDepsMentioned: string[];
   notes: string[];
 };
 
-// Зберегти існуючий тип для сумісності
+// Keep existing type for compatibility
 export type Finding = {
   id: string;
   title: string;
@@ -107,10 +107,10 @@ export interface FindingsSummary {
   total: number;
   
   // New fields - package classification
-  greenPackagesCount?: number;     // Кількість пакетів без проблем
-  yellowPackagesCount?: number;   // Кількість пакетів з проблемами
-  redPackagesCount?: number;      // Кількість критичних пакетів
-  totalPackagesCount?: number;    // Загальна кількість пакетів
+  greenPackagesCount?: number;     // Number of packages without issues
+  yellowPackagesCount?: number;   // Number of packages with issues
+  redPackagesCount?: number;      // Number of critical packages
+  totalPackagesCount?: number;    // Total number of packages
 }
 
 // New types for package usage analysis
@@ -126,7 +126,7 @@ export interface PackageUsageStats {
   usageByPackage: Map<string, PackageUsage>; // packageName -> usage info
 }
 
-// Новий тип для OverallResult (v0.2)
+// New type for OverallResult (v0.2)
 export type OverallResult = {
   version?: string; // "0.2" | "0.3"
   severity: Severity;
@@ -175,7 +175,7 @@ export type OverallResult = {
   ciSummary?: CISummary;
 };
 
-// Зберегти існуючий тип для сумісності (deprecated)
+// Keep existing type for compatibility (deprecated)
 export type RepoInfo = {
   packageJsonPath: string;
   lockfiles: {
@@ -209,7 +209,7 @@ export type RepoInfo = {
   };
 };
 
-// Зберегти існуючий тип для сумісності (deprecated)
+// Keep existing type for compatibility (deprecated)
 // eslint-disable-next-line @typescript-eslint/no-empty-interface
 export type AnalysisResult = OverallResult; // alias for backwards compatibility
 

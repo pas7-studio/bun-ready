@@ -1,6 +1,6 @@
 # bun-ready report - Tested with Bun v24.3.0
 
-⚠️ Нажаль ви не готові до переходу на Bun, але це можливо з деякими змінами
+⚠️ Migration is possible with some adjustments required
 
 ## Findings Summary
 | Status | Count |
