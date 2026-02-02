@@ -375,7 +375,9 @@ export function renderMarkdown(r: OverallResult): string {
   }
 
   // Per-package findings
-  if (r.packages && r.packages.length > 0) {
+  // Only show if multiple packages OR if single package with workspaces
+  // Skip for single package without workspaces to avoid duplication with "Root Package"
+  if (r.packages && (r.packages.length > 1 || (r.packages.length === 1 && r.repo.hasWorkspaces))) {
     const sortedPackages = stableSort(r.packages, (p) => p.name);
     
     for (const pkg of sortedPackages) {
