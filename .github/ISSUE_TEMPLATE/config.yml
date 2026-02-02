@@ -1,7 +1,8 @@
+# File: .github/ISSUE_TEMPLATE/config.yml
 blank_issues_enabled: false
 contact_links:
   - name: Security issue
-    url: https://github.com/pas7studio/bun-ready/security/advisories
+    url: https://github.com/pas7-studio/bun-ready/security/advisories
     about: Please report security vulnerabilities via GitHub Security Advisories.
   - name: Pas7 Studio
     url: https://pas7.com.ua/

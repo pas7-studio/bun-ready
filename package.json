@@ -7,10 +7,10 @@
   "homepage": "https://pas7.com.ua/",
   "repository": {
     "type": "git",
-    "url": "https://github.com/pas7studio/bun-ready"
+    "url": "https://github.com/pas7-studio/bun-ready"
   },
   "bugs": {
-    "url": "https://github.com/pas7studio/bun-ready/issues"
+    "url": "https://github.com/pas7-studio/bun-ready/issues"
   },
   "keywords": [
     "bun",

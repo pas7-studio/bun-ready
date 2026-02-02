@@ -364,7 +364,7 @@ See CONTRIBUTING.md. For security issues, see SECURITY.md.
 
 ## Support
 If this tool saves you time, consider supporting:
-- Ko-fi: https://ko-fi.com/pas7studio
+- Ko-fi: https://ko-fi.com/pas7-studio
 - PayPal: https://www.paypal.com/ncp/payment/KDSSNKK8REDM8
 
 ## Attribution
