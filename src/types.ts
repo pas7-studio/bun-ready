@@ -53,6 +53,10 @@ export type PackageAnalysis = {
   packageUsage?: PackageUsageStats;
   cleanDependencies?: string[];
   cleanDevDependencies?: string[];
+  // Package classification fields
+  greenPackages?: string[];      // Пакети без проблем
+  yellowPackages?: string[];    // Пакети з проблемами
+  redPackages?: string[];       // Критичні пакети
 };
 
 // Оновити ScanOptions з новими полями
@@ -96,10 +100,17 @@ export type PackageStats = {
 };
 
 export interface FindingsSummary {
+  // Old fields (deprecated - will be removed later)
   green: number;
   yellow: number;
   red: number;
   total: number;
+  
+  // New fields - package classification
+  greenPackagesCount?: number;     // Кількість пакетів без проблем
+  yellowPackagesCount?: number;   // Кількість пакетів з проблемами
+  redPackagesCount?: number;      // Кількість критичних пакетів
+  totalPackagesCount?: number;    // Загальна кількість пакетів
 }
 
 // New types for package usage analysis

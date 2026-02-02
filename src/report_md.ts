@@ -18,15 +18,38 @@ const getReadinessMessage = (severity: Severity, hasRedFindings: boolean): strin
   return "❌ Нажаль ви не готові до переходу на Bun через критичні проблеми";
 };
 
-const formatFindingsTable = (summary: FindingsSummary): string => {
+const formatFindingsTable = (summary: FindingsSummary, cleanPackagesCount?: number): string => {
   const lines: string[] = [];
   lines.push(`## Findings Summary`);
   lines.push(`| Status | Count |`);
   lines.push(`|--------|-------|`);
-  lines.push(`| 🟢 Green | ${summary.green} |`);
-  lines.push(`| 🟡 Yellow | ${summary.yellow} |`);
-  lines.push(`| 🔴 Red | ${summary.red} |`);
-  lines.push(`| **Total** | **${summary.total}** |`);
+  
+  // Показуємо пакети за статусом (новий формат)
+  if (summary.greenPackagesCount !== undefined) {
+    lines.push(`| 🟢 Green packages | ${summary.greenPackagesCount} |`);
+  }
+  if (summary.yellowPackagesCount !== undefined) {
+    lines.push(`| 🟡 Yellow packages | ${summary.yellowPackagesCount} |`);
+  }
+  if (summary.redPackagesCount !== undefined) {
+    lines.push(`| 🔴 Red packages | ${summary.redPackagesCount} |`);
+  }
+  if (summary.totalPackagesCount !== undefined) {
+    lines.push(`| **Total packages** | **${summary.totalPackagesCount}** |`);
+  }
+  
+  // Для зворотної сумісності показуємо старий формат, якщо новий немає
+  if (summary.greenPackagesCount === undefined) {
+    // Show clean packages count if available
+    if (cleanPackagesCount !== undefined && cleanPackagesCount > 0) {
+      lines.push(`| Clean packages | ${cleanPackagesCount} |`);
+    }
+    
+    lines.push(`| 🟡 Yellow findings | ${summary.yellow} |`);
+    lines.push(`| 🔴 Red findings | ${summary.red} |`);
+    lines.push(`| **Total packages** | **${summary.total}** |`);
+  }
+  
   return lines.join("\n");
 };
 
@@ -215,16 +238,23 @@ export function renderMarkdown(r: OverallResult): string {
   lines.push(readinessMessage);
   lines.push(``);
   
-  // Findings Summary Table - calculate from root findings
-  // Get root package to check for clean dependencies
+  // Findings Summary Table - розрахувати статус пакетів
   const rootPkgForSummary = r.packages?.find((p) => p.path === path.dirname(r.repo.packageJsonPath));
-  const cleanDepsCount = (rootPkgForSummary?.cleanDependencies?.length || 0) + (rootPkgForSummary?.cleanDevDependencies?.length || 0);
 
   const rootFindingsSummary: FindingsSummary = {
-    green: cleanDepsCount > 0 ? 1 : r.findings.filter((f) => f.severity === "green").length,
+    // Старий формат (deprecated)
+    green: r.findings.filter((f) => f.severity === "green").length,
     yellow: r.findings.filter((f) => f.severity === "yellow").length,
     red: r.findings.filter((f) => f.severity === "red").length,
-    total: r.findings.length + (cleanDepsCount > 0 ? 1 : 0)
+    total: r.findings.length,
+    
+    // Новий формат - класифікувати пакети
+    greenPackagesCount: rootPkgForSummary?.greenPackages?.length || 0,
+    yellowPackagesCount: rootPkgForSummary?.yellowPackages?.length || 0,
+    redPackagesCount: rootPkgForSummary?.redPackages?.length || 0,
+    totalPackagesCount: (rootPkgForSummary?.greenPackages?.length || 0) +
+                         (rootPkgForSummary?.yellowPackages?.length || 0) +
+                         (rootPkgForSummary?.redPackages?.length || 0)
   };
   lines.push(formatFindingsTable(rootFindingsSummary));
   lines.push(``);
@@ -464,16 +494,23 @@ export const renderDetailedReport = (r: OverallResult): string => {
   lines.push(readinessMessage);
   lines.push(``);
   
-  // Findings Summary Table
-  // Get root package to check for clean dependencies
+  // Findings Summary Table - розрахувати статус пакетів
   const rootPkgForSummary = r.packages?.find((p) => p.path === path.dirname(r.repo.packageJsonPath));
-  const cleanDepsCount = (rootPkgForSummary?.cleanDependencies?.length || 0) + (rootPkgForSummary?.cleanDevDependencies?.length || 0);
 
   const rootFindingsSummary: FindingsSummary = {
-    green: cleanDepsCount > 0 ? 1 : r.findings.filter((f) => f.severity === "green").length,
+    // Старий формат (deprecated)
+    green: r.findings.filter((f) => f.severity === "green").length,
     yellow: r.findings.filter((f) => f.severity === "yellow").length,
     red: r.findings.filter((f) => f.severity === "red").length,
-    total: r.findings.length + (cleanDepsCount > 0 ? 1 : 0)
+    total: r.findings.length,
+    
+    // Новий формат - класифікувати пакети
+    greenPackagesCount: rootPkgForSummary?.greenPackages?.length || 0,
+    yellowPackagesCount: rootPkgForSummary?.yellowPackages?.length || 0,
+    redPackagesCount: rootPkgForSummary?.redPackages?.length || 0,
+    totalPackagesCount: (rootPkgForSummary?.greenPackages?.length || 0) +
+                         (rootPkgForSummary?.yellowPackages?.length || 0) +
+                         (rootPkgForSummary?.redPackages?.length || 0)
   };
   lines.push(formatFindingsTable(rootFindingsSummary));
   lines.push(``);

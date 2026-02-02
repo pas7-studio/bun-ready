@@ -5,10 +5,10 @@
 ## Findings Summary
 | Status | Count |
 |--------|-------|
-| 🟢 Green | 1 |
-| 🟡 Yellow | 1 |
-| 🔴 Red | 0 |
-| **Total** | **2** |
+| 🟢 Green packages | 1 |
+| 🟡 Yellow packages | 0 |
+| 🔴 Red packages | 0 |
+| **Total packages** | **1** |
 
 **Overall:** 🟡 YELLOW
 

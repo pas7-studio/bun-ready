@@ -201,10 +201,11 @@ test("v2: clean dependencies shown in findings summary", async () => {
   const { readFile } = await import("node:fs/promises");
   const content = await readFile(out, "utf-8");
   
-  // Should show Green: 1 in findings summary (for clean dependencies)
-  expect(content).toContain("| 🟢 Green | 1 |");
-  expect(content).toContain("| 🟡 Yellow | 2 |");
-  expect(content).toContain("| **Total** | **3** |");
+  // Should show clean packages count in findings summary
+  expect(content).toContain("| 🟢 Green packages | 6 |");
+  expect(content).toContain("| 🟡 Yellow packages | 1 |");
+  expect(content).toContain("| 🔴 Red packages | 0 |");
+  expect(content).toContain("| **Total packages** | **7** |");
   
   // Should show Clean Dependencies section
   expect(content).toContain("## Clean Dependencies (✅ GREEN)");

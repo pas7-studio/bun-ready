@@ -161,6 +161,80 @@ function filterFindings(findings: import("./types.js").Finding[], config: import
 }
 
 /**
+ * Класифікує всі залежності за статусом (green/yellow/red)
+ */
+function classifyPackageStatus(
+  dependencies: Record<string, string>,
+  devDependencies: Record<string, string>,
+  findings: import("./types.js").Finding[]
+): {
+  greenPackages: string[];
+  yellowPackages: string[];
+  redPackages: string[];
+} {
+  // Зібрати всі пакети з їх версіями
+  const allPackages = new Map<string, string>();
+  
+  for (const [name, version] of Object.entries(dependencies)) {
+    allPackages.set(name, `${name}@${version}`);
+  }
+  for (const [name, version] of Object.entries(devDependencies)) {
+    allPackages.set(name, `${name}@${version}`);
+  }
+  
+  // Зібрати пакети з червоними знахідками
+  const redPackageNames = new Set<string>();
+  for (const finding of findings) {
+    if (finding.severity === 'red') {
+      for (const detail of finding.details) {
+        const match = detail.match(/^([a-zA-Z0-9_@\/\.\-]+)/);
+        if (match && match[1]) {
+          const fullPkg = match[1];
+          const pkgName = fullPkg.split(/[@:]/)[0];
+          if (pkgName) {
+            redPackageNames.add(pkgName);
+          }
+        }
+      }
+    }
+  }
+  
+  // Зібрати пакети з жовтими знахідками
+  const yellowPackageNames = new Set<string>();
+  for (const finding of findings) {
+    if (finding.severity === 'yellow') {
+      for (const detail of finding.details) {
+        const match = detail.match(/^([a-zA-Z0-9_@\/\.\-]+)/);
+        if (match && match[1]) {
+          const fullPkg = match[1];
+          const pkgName = fullPkg.split(/[@:]/)[0];
+          if (pkgName) {
+            yellowPackageNames.add(pkgName);
+          }
+        }
+      }
+    }
+  }
+  
+  // Класифікувати пакети
+  const greenPackages: string[] = [];
+  const yellowPackages: string[] = [];
+  const redPackages: string[] = [];
+  
+  for (const [name, fullPkg] of allPackages) {
+    if (redPackageNames.has(name)) {
+      redPackages.push(fullPkg);
+    } else if (yellowPackageNames.has(name)) {
+      yellowPackages.push(fullPkg);
+    } else {
+      greenPackages.push(fullPkg);
+    }
+  }
+  
+  return { greenPackages, yellowPackages, redPackages };
+}
+
+/**
  * Analyze a single package
  */
 export async function analyzeSinglePackage(
@@ -299,6 +373,13 @@ export async function analyzeSinglePackage(
   summaryLines.push(`bun install dry-run: ${install ? (install.ok ? "ok" : "failed") : "skipped"}`);
   summaryLines.push(`bun test: ${test ? (test.ok ? "ok" : "failed") : "skipped"}`);
 
+  // Класифікувати пакети за статусом
+  const packageStatus = classifyPackageStatus(
+    info.dependencies || {},
+    info.devDependencies || {},
+    findings
+  );
+
   const result: PackageAnalysis = {
     name,
     path: packagePath,
@@ -315,7 +396,10 @@ export async function analyzeSinglePackage(
     stats,
     findingsSummary,
     cleanDependencies,
-    cleanDevDependencies
+    cleanDevDependencies,
+    greenPackages: packageStatus.greenPackages,
+    yellowPackages: packageStatus.yellowPackages,
+    redPackages: packageStatus.redPackages
   };
 
   if (packageUsage !== undefined) {
