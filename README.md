@@ -351,6 +351,36 @@ jobs:
 - SARIF export for Code Scanning
 - Policy and baseline support
 
+## v0.4 New Features - Extended Analysis
+
+### Node.js API Compatibility Analysis
+
+Analyze your codebase for Node.js built-in module usage and Bun compatibility:
+
+```bash
+# Enable full extended analysis
+bun-ready scan . --extended
+bun-ready scan . -x  # shorthand
+
+# Selective analysis
+bun-ready scan . --analyze api       # Only API analysis
+bun-ready scan . --analyze modules   # Only module analysis
+```
+
+**Module Compatibility Zones:**
+
+| Zone | Description | Examples |
+|------|-------------|----------|
+| 🟢 Green | Fully compatible | fs, path, crypto, events, stream |
+| 🟡 Yellow | Partial differences | child_process, http, worker_threads |
+| 🔴 Red | Limited support | vm, v8, inspector, wasi |
+
+**New Finding IDs:**
+- `api.node_builtins` - Node.js built-in modules detected
+- `api.node_prefix` - Recommendation to use `node:` prefix
+- `modules.esm_cjs_mixed` - Mixed ESM/CJS imports
+- `modules.cjs_globals` - CJS globals (__dirname, __filename)
+
 ## What it checks (MVP)
 - package.json presence & shape
 - lockfiles (npm/yarn/pnpm/bun)
@@ -364,10 +394,29 @@ See CONTRIBUTING.md. For security issues, see SECURITY.md.
 
 ## Support
 If this tool saves you time, consider supporting:
-- Ko-fi: https://ko-fi.com/pas7-studio
+- Ko-fi: https://ko-fi.com/pas7studio
 - PayPal: https://www.paypal.com/ncp/payment/KDSSNKK8REDM8
 
-## Attribution
-Created and maintained by Pas7 Studio
-Website: https://pas7.com.ua/
-LinkedIn: https://www.linkedin.com/company/pas7-studio
+## About Pas7 Studio
+
+**bun-ready** is developed and maintained by [Pas7 Studio](https://pas7.com.ua/), a software development company specializing in modern JavaScript/TypeScript solutions, runtime migrations, and developer tools.
+
+### Why Bun?
+
+Interested in migrating from Node.js to Bun? Read our article on [Bun vs Node.js in 2026](https://pas7.com.ua/blog/en/bun-ready-bun-vs-node-2026) to understand the benefits, challenges, and best practices for making the switch.
+
+### Need Help?
+
+If you need assistance with:
+- 🚀 **Bun migration** for your projects
+- 🔧 **Custom development** and consulting
+- 📊 **Team training** on modern runtimes
+
+**[Contact Pas7 Studio](https://pas7.com.ua/contact)** - we're here to help!
+
+### Links
+
+- 🌐 Website: [https://pas7.com.ua/](https://pas7.com.ua/)
+- 📧 Contact: [https://pas7.com.ua/contact](https://pas7.com.ua/contact)
+- 📝 Blog: [Bun vs Node.js 2026](https://pas7.com.ua/blog/en/bun-ready-bun-vs-node-2026)
+- 💼 LinkedIn: [Pas7 Studio](https://www.linkedin.com/company/pas7-studio)
