@@ -381,3 +381,139 @@ export type OverallResultV03 = OverallResult & {
   changedPackages?: string[];
   ciSummary?: CISummary;
 };
+
+// ============================================================================
+// v0.4 NEW TYPES - Extended Analysis
+// ============================================================================
+
+/**
+ * Extended analysis mode options
+ */
+export type ExtendedAnalysisMode = 'none' | 'full' | 'api' | 'modules';
+
+/**
+ * Options for extended analysis
+ */
+export interface ExtendedAnalysisOptions {
+  /** Enable extended analysis */
+  enabled: boolean;
+  /** Which analyses to run */
+  mode: ExtendedAnalysisMode;
+}
+
+/**
+ * Node.js API module usage summary
+ */
+export interface ApiModuleUsage {
+  /** Module name */
+  module: string;
+  /** Compatibility category */
+  category: 'green' | 'yellow' | 'red';
+  /** Number of files using this module */
+  fileCount: number;
+  /** Whether node: prefix is recommended */
+  recommendsPrefix: boolean;
+  /** Bun alternatives if available */
+  bunAlternatives?: string[];
+  /** Notes about compatibility */
+  notes?: string;
+}
+
+/**
+ * Result of Node.js API analysis
+ */
+export interface ApiAnalysisSummary {
+  /** Total files analyzed */
+  totalFiles: number;
+  /** Total Node.js imports found */
+  totalImports: number;
+  /** Green zone modules */
+  greenZone: string[];
+  /** Yellow zone modules */
+  yellowZone: string[];
+  /** Red zone modules */
+  redZone: string[];
+  /** Modules without node: prefix */
+  withoutNodePrefix: string[];
+  /** Detailed usage info */
+  usageByModule?: ApiModuleUsage[];
+}
+
+/**
+ * Mixed ESM/CJS file info
+ */
+export interface MixedImportFileInfo {
+  /** File path */
+  path: string;
+  /** Lines with ESM imports */
+  esmImportLines: number[];
+  /** Lines with CJS requires */
+  cjsRequireLines: number[];
+}
+
+/**
+ * CJS global usage info
+ */
+export interface CJSGlobalUsageInfo {
+  /** Global name */
+  global: string;
+  /** File path */
+  file: string;
+  /** Line number */
+  line: number;
+  /** Code context */
+  context?: string;
+  /** ESM replacement */
+  replacement?: string;
+}
+
+/**
+ * Result of module system analysis
+ */
+export interface ModuleAnalysisSummary {
+  /** Total files analyzed */
+  totalFiles: number;
+  /** ESM-only files */
+  esmFiles: number;
+  /** CJS-only files */
+  cjsFiles: number;
+  /** Mixed ESM/CJS files */
+  mixedFiles: number;
+  /** CJS globals usage count */
+  cjsGlobalsUsage: number;
+  /** List of ESM files */
+  esmFileList?: string[];
+  /** List of CJS files */
+  cjsFileList?: string[];
+  /** Mixed files details */
+  mixedFileDetails?: MixedImportFileInfo[];
+  /** CJS globals details */
+  cjsGlobalsDetails?: CJSGlobalUsageInfo[];
+}
+
+/**
+ * Extended analysis result
+ */
+export interface ExtendedAnalysisResult {
+  /** API analysis summary */
+  apiAnalysis?: ApiAnalysisSummary;
+  /** Module analysis summary */
+  moduleAnalysis?: ModuleAnalysisSummary;
+  /** All findings from extended analysis */
+  findings: Finding[];
+}
+
+/**
+ * Updated ScanOptions for v0.4
+ */
+export type ScanOptionsV04 = ScanOptionsV03 & {
+  extended?: ExtendedAnalysisOptions;
+};
+
+/**
+ * Updated OverallResult for v0.4 (extends v0.3)
+ */
+export type OverallResultV04 = OverallResultV03 & {
+  version: "0.4";
+  extendedAnalysis?: ExtendedAnalysisResult;
+};

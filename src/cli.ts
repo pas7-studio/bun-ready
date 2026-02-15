@@ -2,7 +2,7 @@
 import { promises as fs } from "node:fs";
 import path from "node:path";
 import { createHash } from "node:crypto";
-import type { ReportFormat, Severity, FailOnPolicy, ScanOptions, CIOptions, PolicyConfig, PackageAnalysis, ChangedOnlyOptions } from "./types.js";
+import type { ReportFormat, Severity, FailOnPolicy, ScanOptions, CIOptions, PolicyConfig, PackageAnalysis, ChangedOnlyOptions, ExtendedAnalysisOptions, ExtendedAnalysisMode, ExtendedAnalysisResult } from "./types.js";
 import { analyzeRepoOverall } from "./analyze.js";
 import { renderMarkdown, renderDetailedReport } from "./report_md.js";
 import { renderJson } from "./report_json.js";
@@ -12,31 +12,37 @@ import { generateCISummary, formatCISummaryText, formatGitHubJobSummary, calcula
 import { parseRuleArgs, mergePolicyConfigs, applyPolicy } from "./policy.js";
 import { loadBaseline, saveBaseline, compareFindings } from "./baseline.js";
 import { detectChangedPackages, mapPathsToPackages } from "./changed_only.js";
+import { analyzeNodeApiUsage } from "./analyze_api.js";
+import { analyzeModuleSystem } from "./analyze_modules.js";
 
 const usage = (): string => {
   return [
     "bun-ready",
     "",
     "Usage:",
-    "  bun-ready scan <path> [--format md|json|sarif] [--out <file>] [--no-install] [--no-test] [--verbose] [--detailed] [--scope root|packages|all] [--fail-on green|yellow|red] [--ci] [--output-dir <dir>] [--rule <id>=<action>] [--max-warnings <n>] [--baseline <file>] [--update-baseline] [--changed-only] [--since <ref>]",
+    "  bun-ready scan <path> [options]",
     "",
     "Options:",
     "  --format md|json|sarif       Output format (default: md)",
-    "  --out <file>          Output file path (default: bun-ready.md or bun-ready.json)",
-    "  --no-install           Skip bun install --dry-run",
-    "  --no-test             Skip bun test",
-    "  --verbose              Show detailed output",
-    "  --detailed            Show detailed package usage report with file paths",
-    "  --scope root|packages|all  Scan scope for monorepos (default: all)",
-    "  --fail-on green|yellow|red  Fail policy (default: red)",
-    "  --ci                  Run in CI mode (stable output, minimal noise)",
-    "  --output-dir <dir>    Output directory for all artifacts (in CI mode)",
-    "  --rule <id>=<action>  Apply policy rule (e.g., --rule deps.native_addons=fail)",
-    "  --max-warnings <n>    Maximum warnings allowed (threshold)",
-    "  --baseline <file>      Baseline file for regression detection",
-    "  --update-baseline      Update baseline file after scan",
-    "  --changed-only         Scan only changed packages (monorepos)",
-    "  --since <ref>         Git ref for changed packages (e.g., main, HEAD~1)",
+    "  --out <file>                 Output file path (default: bun-ready.md)",
+    "  --no-install                 Skip bun install --dry-run",
+    "  --no-test                    Skip bun test",
+    "  --verbose                    Show detailed output",
+    "  --detailed                   Show detailed package usage report",
+    "  --scope root|packages|all    Scan scope for monorepos (default: all)",
+    "  --fail-on green|yellow|red   Fail policy (default: red)",
+    "  --ci                         Run in CI mode (stable output)",
+    "  --output-dir <dir>           Output directory for artifacts (CI mode)",
+    "  --rule <id>=<action>         Apply policy rule",
+    "  --max-warnings <n>           Maximum warnings allowed",
+    "  --baseline <file>            Baseline file for regression detection",
+    "  --update-baseline            Update baseline file after scan",
+    "  --changed-only               Scan only changed packages (monorepos)",
+    "  --since <ref>                Git ref for changed packages",
+    "",
+    "Extended Analysis (v0.4):",
+    "  --extended, -x               Enable full extended analysis",
+    "  --analyze <list>             Selective analysis: api, modules",
     "",
     "Exit codes:",
     "  0   green",
@@ -46,7 +52,7 @@ const usage = (): string => {
   ].join("\n");
 };
 
-const parseArgs = (argv: string[]): { cmd: string; opts: { repoPath: string; format: ReportFormat; outFile: string | null; runInstall: boolean; runTest: boolean; verbose: boolean; detailed: boolean; scope: "root" | "packages" | "all"; failOn?: FailOnPolicy; ci?: CIOptions; policy?: PolicyConfig; baseline?: { file: string; update?: boolean }; changedOnly?: ChangedOnlyOptions } } => {
+const parseArgs = (argv: string[]): { cmd: string; opts: { repoPath: string; format: ReportFormat; outFile: string | null; runInstall: boolean; runTest: boolean; verbose: boolean; detailed: boolean; scope: "root" | "packages" | "all"; failOn?: FailOnPolicy; ci?: CIOptions; policy?: PolicyConfig; baseline?: { file: string; update?: boolean }; changedOnly?: ChangedOnlyOptions; extended?: ExtendedAnalysisOptions } } => {
   const args = argv.slice(2);
   const cmd = args[0] ?? "";
   if (cmd !== "scan") {
@@ -80,6 +86,7 @@ const parseArgs = (argv: string[]): { cmd: string; opts: { repoPath: string; for
   let maxWarnings: number | undefined;
   let baseline: { file: string; update?: boolean } | undefined;
   let changedOnly: ChangedOnlyOptions | undefined;
+  let extended: ExtendedAnalysisOptions | undefined;
 
   for (let i = 2; i < args.length; i++) {
     const a = args[i] ?? "";
@@ -175,6 +182,29 @@ const parseArgs = (argv: string[]): { cmd: string; opts: { repoPath: string; for
       i++;
       continue;
     }
+    // v0.4: Extended analysis flags
+    if (a === "--extended" || a === "-x") {
+      extended = { enabled: true, mode: "full" };
+      continue;
+    }
+    if (a === "--analyze") {
+      const v = args[i + 1] ?? "";
+      // Parse comma-separated list
+      const modes = v.split(",").map(m => m.trim()).filter(m => m);
+      if (modes.length === 0) {
+        extended = { enabled: true, mode: "full" };
+      } else if (modes.includes("api") && modes.includes("modules")) {
+        extended = { enabled: true, mode: "full" };
+      } else if (modes.includes("api")) {
+        extended = { enabled: true, mode: "api" };
+      } else if (modes.includes("modules")) {
+        extended = { enabled: true, mode: "modules" };
+      } else {
+        extended = { enabled: true, mode: "full" };
+      }
+      i++;
+      continue;
+    }
   }
 
   // Build opts object without undefined properties
@@ -224,6 +254,11 @@ const parseArgs = (argv: string[]): { cmd: string; opts: { repoPath: string; for
   // Add changed-only if specified
   if (changedOnly !== undefined && changedOnly.enabled) {
     baseOpts.changedOnly = changedOnly;
+  }
+
+  // Add extended analysis if specified
+  if (extended !== undefined && extended.enabled) {
+    baseOpts.extended = extended;
   }
 
   return {
@@ -304,6 +339,52 @@ const main = async (): Promise<void> => {
   }
 
   const res = await analyzeRepoOverall(scanOpts);
+
+  // Run extended analysis if enabled (v0.4)
+  let extendedAnalysisResult: ExtendedAnalysisResult | undefined;
+  if (opts.extended?.enabled) {
+    const extendedFindings: any[] = [];
+    
+    if (opts.extended.mode === 'full' || opts.extended.mode === 'api') {
+      if (opts.verbose) {
+        process.stderr.write('[extended] Running Node.js API analysis...\n');
+      }
+      const apiResult = await analyzeNodeApiUsage({
+        rootPath: opts.repoPath,
+        verbose: opts.verbose,
+      });
+      extendedFindings.push(...apiResult.findings);
+      extendedAnalysisResult = {
+        ...extendedAnalysisResult,
+        apiAnalysis: apiResult.summary,
+        findings: extendedFindings,
+      };
+    }
+    
+    if (opts.extended.mode === 'full' || opts.extended.mode === 'modules') {
+      if (opts.verbose) {
+        process.stderr.write('[extended] Running ESM/CJS module analysis...\n');
+      }
+      const moduleResult = await analyzeModuleSystem({
+        rootPath: opts.repoPath,
+        verbose: opts.verbose,
+      });
+      extendedFindings.push(...moduleResult.findings);
+      extendedAnalysisResult = {
+        ...extendedAnalysisResult,
+        moduleAnalysis: moduleResult.summary,
+        findings: extendedFindings,
+      };
+    }
+    
+    // Merge extended findings with main findings
+    if (extendedFindings.length > 0) {
+      res.findings = [...res.findings, ...extendedFindings];
+      res.summaryLines.push(`Extended analysis: ${extendedFindings.length} additional finding(s)`);
+    }
+    
+    (res as any).extendedAnalysis = extendedAnalysisResult;
+  }
 
   // Detect changed packages if --changed-only is specified (after scanning all packages)
   let changedPackages: string[] | undefined;

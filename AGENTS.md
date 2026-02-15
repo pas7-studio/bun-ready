@@ -115,3 +115,45 @@ Always test:
 - Multiple imports of same package across different files
 - Nested directories and complex file structures
 - Edge cases: empty project, no source files, uninstalled packages
+
+## New Rules for v0.4 - Extended Analysis
+
+### New Finding IDs
+
+| ID | Description | Severity |
+|----|-------------|----------|
+| `api.node_builtins` | Node.js built-in modules detected | green/yellow/red |
+| `api.node_prefix` | Recommendation to use node: prefix | green |
+| `modules.esm_cjs_mixed` | Mixed ESM/CJS imports in same file | yellow |
+| `modules.cjs_globals` | CJS globals (__dirname, __filename) | yellow |
+
+### Extended Analysis Options
+
+- `--extended` or `-x`: Enable full extended analysis
+- `--analyze api,modules`: Selective analysis
+
+### Node.js Module Categories
+
+**Green Zone** - Fully compatible:
+- fs, path, url, util, events, stream, crypto, buffer, etc.
+
+**Yellow Zone** - Behavior differences:
+- child_process, http, https, worker_threads, etc.
+
+**Red Zone** - Limited/no support:
+- vm, v8, inspector, wasi
+
+### CJS to ESM Migration
+
+| CJS Global | ESM Replacement |
+|------------|-----------------|
+| `__dirname` | `import.meta.dirname` |
+| `__filename` | `import.meta.url` |
+| `require.main` | `import.meta.main` |
+
+### Implementation Files
+
+- `src/node_builtins.ts` - Module database
+- `src/import_parser.ts` - Import parsing utilities
+- `src/analyze_api.ts` - API compatibility analysis
+- `src/analyze_modules.ts` - ESM/CJS analysis

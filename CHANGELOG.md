@@ -2,6 +2,65 @@
 
 All notable changes to bun-ready will be documented in this file.
 
+## [0.4.0] - 2024
+
+### New Features
+
+#### Extended Analysis
+
+**Node.js API Compatibility Analysis**
+- New `--extended` or `-x` flag for full extended analysis
+- New `--analyze api,modules` for selective analysis
+- Analyzes usage of Node.js built-in modules (fs, path, crypto, etc.)
+- Categorizes modules into compatibility zones:
+  - **Green Zone**: Fully compatible (fs, path, events, stream, etc.)
+  - **Yellow Zone**: Partial differences (child_process, http, worker_threads)
+  - **Red Zone**: Limited support (vm, v8, inspector, wasi)
+- Recommends `node:` prefix for explicit compatibility
+- New finding IDs: `api.node_builtins`, `api.node_prefix`
+
+**ESM/CJS Module Analysis**
+- Detects mixed ESM/CJS imports in same file
+- Identifies usage of CJS globals (`__dirname`, `__filename`, `require.main`)
+- Provides ESM replacement recommendations:
+  - `__dirname` → `import.meta.dirname`
+  - `__filename` → `import.meta.url`
+  - `require.main` → `import.meta.main`
+- New finding IDs: `modules.esm_cjs_mixed`, `modules.cjs_globals`
+
+### New Files
+
+- `src/node_builtins.ts` - Node.js built-in modules database
+- `src/import_parser.ts` - Import parsing utilities
+- `src/analyze_api.ts` - API compatibility analysis
+- `src/analyze_modules.ts` - ESM/CJS module analysis
+
+### New Finding IDs
+
+| ID | Description | Severity |
+|----|-------------|----------|
+| `api.node_builtins` | Node.js built-in modules detected | green/yellow/red |
+| `api.node_prefix` | Recommendation to use node: prefix | green |
+| `modules.esm_cjs_mixed` | Mixed ESM/CJS imports | yellow |
+| `modules.cjs_globals` | CJS globals usage | yellow |
+
+### CLI Changes
+
+```bash
+# Enable full extended analysis
+bun-ready scan . --extended
+bun-ready scan . -x
+
+# Selective analysis
+bun-ready scan . --analyze api       # Only API analysis
+bun-ready scan . --analyze modules   # Only module analysis
+bun-ready scan . --analyze api,modules  # Both
+```
+
+### Breaking Changes
+
+None - v0.4.0 is fully backward compatible with v0.3.x
+
 ## [0.3.0] - 2024
 
 ### New Features
